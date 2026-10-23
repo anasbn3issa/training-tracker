@@ -81,5 +81,5 @@ insert into program_exercises (day_code, position, exercise_id, base_sets, rep_l
 
 -- Monday of the current block's week 1. Only set on first seed; change it
 -- later with: update settings set block_start_date = 'YYYY-MM-DD';
-insert into settings (id, block_start_date) values (true, '2026-10-19')
+insert into settings (id, block_start_date) values (true, '2026-09-28')
 on conflict (id) do nothing;
