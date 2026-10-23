@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Training Tracker
 
-## Getting Started
+Single-user, phone-first tracker for one fixed lifting program (4 days/week) plus runs.
+Next.js (App Router) + Supabase Postgres + Tailwind.
 
-First, run the development server:
+## Local setup
+
+Prerequisites: Node 24, Docker.
 
 ```bash
+npm install
+npm run db:start        # local Supabase in Docker: applies migrations + seed on first start
+cp .env.example .env.local
+npx supabase status -o env   # copy API_URL -> SUPABASE_URL, SECRET_KEY -> SUPABASE_SECRET_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Supabase Studio (local DB browser) runs at http://127.0.0.1:54323.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable              | What                                                               |
+| --------------------- | ------------------------------------------------------------------ |
+| `SUPABASE_URL`        | Supabase API URL                                                   |
+| `SUPABASE_SECRET_KEY` | Supabase secret (service-role) key. Server-side only, bypasses RLS |
 
-## Learn More
+The browser never talks to Supabase directly: all reads/writes go through `/api/*` route handlers.
+RLS is enabled on every table with no policies, so the public keys can access nothing.
 
-To learn more about Next.js, take a look at the following resources:
+## Database
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Schema: `supabase/migrations/`
+- Program (exercises, days, prescriptions, block start date): `supabase/seed.sql`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The program is changed by editing `seed.sql`. The seed is safe to re-run on a database that
+already holds logged sessions:
 
-## Deploy on Vercel
+```bash
+psql "$DATABASE_URL" -f supabase/seed.sql
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`npm run db:reset` rebuilds the **local** database from scratch (wipes logged data).
+After a schema change, regenerate the TypeScript types with `npm run db:types`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To start a new training block, set its first Monday:
+
+```sql
+update settings set block_start_date = 'YYYY-MM-DD';
+```
+
+## Scripts
+
+| Script             | What                                  |
+| ------------------ | ------------------------------------- |
+| `npm run dev`      | Next.js dev server                    |
+| `npm test`         | Unit tests (Vitest)                   |
+| `npm run db:start` | Start local Supabase                  |
+| `npm run db:stop`  | Stop local Supabase                   |
+| `npm run db:reset` | Recreate local DB (migrations + seed) |
+| `npm run db:types` | Regenerate `src/lib/database.types.ts` |
