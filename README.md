@@ -68,3 +68,12 @@ Writes never wait on the network. They are applied to local state, saved to Inde
 outbox of pending ops, then sent to `/api/sync` in the background with retry (`src/lib/sync.ts`).
 On load the app shows the IndexedDB copy first, then pulls server state and replays any pending
 ops on top (last write wins).
+
+## PWA
+
+- Manifest: `src/app/manifest.ts` (served at `/manifest.webmanifest`). Icons in `public/icons/`
+  (source: `public/icons/icon.svg`).
+- Service worker: `public/sw.js`, registered in production builds only. Pages are network-first with
+  a 3 s timeout and a cached fallback; `/_next/static` is cache-first; `/api` is never cached.
+  Each build gets its own cache (`/sw.js?v=<build id>`).
+- Install on Android: open the URL in Chrome → menu → *Add to Home screen* / *Install app*.
