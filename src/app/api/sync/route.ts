@@ -41,7 +41,8 @@ const op = z.union([
   z.object({ kind: z.literal("delete"), table: z.enum(["sessions", "set_logs", "runs"]), id: z.uuid() }),
 ]);
 
-const body = z.object({ ops: z.array(op) });
+// Ops are validated one by one, so a single bad op is reported at its exact index.
+const body = z.object({ ops: z.array(z.unknown()) });
 
 function execute(supabase: ReturnType<typeof db>, o: Op) {
   if (o.kind === "delete") return supabase.from(o.table).delete().eq("id", o.id);
@@ -61,13 +62,15 @@ function execute(supabase: ReturnType<typeof db>, o: Op) {
  * (invalid data, constraint violation): the client drops it rather than retrying forever.
  */
 export async function POST(request: Request) {
-  const parsed = body.safeParse(await request.json());
-  if (!parsed.success) return Response.json({ applied: 0, error: z.prettifyError(parsed.error) }, { status: 422 });
+  const parsed = body.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return Response.json({ applied: 0, error: "body must be { ops: [...] }" }, { status: 400 });
 
   const supabase = db();
   const { ops } = parsed.data;
   for (let i = 0; i < ops.length; i++) {
-    const { error } = await execute(supabase, ops[i]);
+    const valid = op.safeParse(ops[i]);
+    if (!valid.success) return Response.json({ applied: i, error: z.prettifyError(valid.error) }, { status: 422 });
+    const { error } = await execute(supabase, valid.data);
     if (error) {
       // Postgres classes 22 (data exception) and 23 (integrity violation) won't fix themselves.
       const permanent = error.code?.startsWith("22") || error.code?.startsWith("23");

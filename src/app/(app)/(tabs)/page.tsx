@@ -12,7 +12,7 @@ const formatDay = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
 
 export default function TodayPage() {
-  const { program, log, ready, apply } = useData();
+  const { program, log, ready, pending, apply } = useData();
   const router = useRouter();
   const [weekOverride, setWeekOverride] = useState<number | null>(null);
   const [pickOtherDay, setPickOtherDay] = useState(false);
@@ -81,6 +81,12 @@ export default function TodayPage() {
         <p className="text-zinc-400">Running, last 7 days</p>
         <p className="text-3xl font-bold tabular-nums">{runKmLast7Days(log.runs, today)} km</p>
       </section>
+
+      {pending > 0 && (
+        <p className="text-zinc-500">
+          Saved on this phone · {pending} change{pending > 1 ? "s" : ""} waiting to sync
+        </p>
+      )}
 
       <div className="mt-auto flex flex-col gap-3">
         {inProgress ? (

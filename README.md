@@ -61,3 +61,10 @@ update settings set block_start_date = 'YYYY-MM-DD';
 | `npm run db:stop`  | Stop local Supabase                   |
 | `npm run db:reset` | Recreate local DB (migrations + seed) |
 | `npm run db:types` | Regenerate `src/lib/database.types.ts` |
+
+## Offline behaviour
+
+Writes never wait on the network. They are applied to local state, saved to IndexedDB with an
+outbox of pending ops, then sent to `/api/sync` in the background with retry (`src/lib/sync.ts`).
+On load the app shows the IndexedDB copy first, then pulls server state and replays any pending
+ops on top (last write wins).
