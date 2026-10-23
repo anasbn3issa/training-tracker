@@ -37,6 +37,9 @@ export default function TodayPage() {
         row: { id: uuid(), day_code: day.code, date: today, block_week: week, notes: null, completed_at: null },
       },
     ]);
+    // Next keeps this page mounted; reset the picker for when we come back.
+    setPickOtherDay(false);
+    setWeekOverride(null);
     router.push("/session");
   }
 
