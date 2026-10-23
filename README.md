@@ -12,6 +12,7 @@ npm install
 npm run db:start        # local Supabase in Docker: applies migrations + seed on first start
 cp .env.example .env.local
 npx supabase status -o env   # copy API_URL -> SUPABASE_URL, SECRET_KEY -> SUPABASE_SECRET_KEY
+# set APP_PASSWORD and AUTH_SECRET in .env.local
 npm run dev
 ```
 
@@ -23,6 +24,8 @@ Supabase Studio (local DB browser) runs at http://127.0.0.1:54323.
 | --------------------- | ------------------------------------------------------------------ |
 | `SUPABASE_URL`        | Supabase API URL                                                   |
 | `SUPABASE_SECRET_KEY` | Supabase secret (service-role) key. Server-side only, bypasses RLS |
+| `APP_PASSWORD`        | The single password to enter the app. Use a long one in production |
+| `AUTH_SECRET`         | Signs the login cookie (`openssl rand -base64 32`). Rotating it logs every device out |
 
 The browser never talks to Supabase directly: all reads/writes go through `/api/*` route handlers.
 RLS is enabled on every table with no policies, so the public keys can access nothing.

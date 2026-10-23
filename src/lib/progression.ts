@@ -33,9 +33,11 @@ const WEEKS: Record<number, { sets: (base: number) => number; cue: string }> = {
 
 const roundKg = (kg: number) => Math.round(kg * 100) / 100;
 
+export const setsForWeek = (baseSets: number, week: number) => WEEKS[week].sets(baseSets);
+export const effortCue = (week: number) => WEEKS[week].cue;
+
 export function suggest(rx: Prescription, week: number, lastSets: LoggedSet[]): Suggestion {
-  const { sets: setsFor, cue } = WEEKS[week];
-  const sets = setsFor(rx.base_sets);
+  const sets = setsForWeek(rx.base_sets, week);
 
   const weights = lastSets.map((s) => s.weight_kg).filter((w) => w !== null);
   const lastWeight = weights.length > 0 ? Math.max(...weights) : null;
@@ -49,7 +51,7 @@ export function suggest(rx: Prescription, week: number, lastSets: LoggedSet[]): 
     chaseLastReps ? lastSets[Math.min(i, lastSets.length - 1)].reps : rx.rep_low,
   );
 
-  return { sets, effortCue: cue, weightKg, targetReps, advanced, lastSets };
+  return { sets, effortCue: effortCue(week), weightKg, targetReps, advanced, lastSets };
 }
 
 /**
