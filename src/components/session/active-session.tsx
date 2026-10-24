@@ -113,6 +113,12 @@ export function ActiveSession({
     setRestEndsAt(null);
   }
 
+  // Started by mistake: nothing logged, so nothing to keep.
+  function cancel() {
+    apply([{ kind: "delete", table: "sessions", id: session.id }]);
+    router.replace("/");
+  }
+
   function finish() {
     apply([{ kind: "upsert", table: "sessions", row: { ...session, completed_at: new Date().toISOString() } }]);
     router.replace("/");
@@ -176,8 +182,8 @@ export function ActiveSession({
             <ChevronRightIcon className="size-5" />
           </NavButton>
         </div>
-        <GhostButton onClick={finish} className="px-2">
-          Finish
+        <GhostButton onClick={undoable ? finish : cancel} className="px-2">
+          {undoable ? "Finish" : "Cancel"}
         </GhostButton>
       </header>
 

@@ -17,6 +17,7 @@
   --color-on-accent: #140a03;
   --color-run: #64b5ff;
   --color-run-soft: rgb(100 181 255 / 0.14);
+  --color-danger: #ff5a5f;
 }
 
 @theme inline {
