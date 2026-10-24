@@ -77,3 +77,14 @@ ops on top (last write wins).
   a 3 s timeout and a cached fallback; `/_next/static` is cache-first; `/api` is never cached.
   Each build gets its own cache (`/sw.js?v=<build id>`).
 - Install on Android: open the URL in Chrome → menu → *Add to Home screen* / *Install app*.
+
+## Deploy (Vercel + hosted Supabase)
+
+1. Hosted DB (once, and after each new migration):
+   ```bash
+   npx supabase link --project-ref <project-ref>
+   npx supabase db push --include-seed
+   ```
+2. Vercel: import the GitHub repo, then set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `APP_PASSWORD`,
+   `AUTH_SECRET` for Production. Every push to `main` deploys.
+3. Functions run in `dub1` (Dublin, `vercel.json`), next to the Supabase project in `eu-west-1`.
