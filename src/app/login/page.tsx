@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { PrimaryButton } from "@/components/ui";
 
 export default function LoginPage() {
   const [error, setError] = useState(false);
@@ -19,22 +20,26 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col justify-end gap-4 p-4 pb-12">
-      <h1 className="text-3xl font-bold">Training Tracker</h1>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+    <main className="flex flex-1 flex-col justify-end gap-6 px-4 pb-12">
+      <div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- tiny static icon, served without auth */}
+        <img src="/icons/icon-192.png" alt="" width={64} height={64} className="rounded-2xl" />
+        <h1 className="mt-4 text-[32px] font-extrabold tracking-tight">Training Tracker</h1>
+        <p className="text-fg-2">Enter your password to continue.</p>
+      </div>
+      <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <input
           name="password"
           type="password"
           autoComplete="current-password"
           placeholder="Password"
+          aria-label="Password"
           autoFocus
           required
-          className="h-14 rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-xl"
+          className="h-14 rounded-2xl border border-line bg-surface px-4 text-lg outline-none placeholder:text-fg-3 focus:border-accent"
         />
-        {error && <p className="text-red-400">Wrong password</p>}
-        <button disabled={pending} className="h-16 rounded-xl bg-lime-400 text-xl font-bold text-black disabled:opacity-50">
-          Enter
-        </button>
+        {error && <p className="text-sm font-medium text-red-400">Wrong password</p>}
+        <PrimaryButton disabled={pending}>Enter</PrimaryButton>
       </form>
     </main>
   );

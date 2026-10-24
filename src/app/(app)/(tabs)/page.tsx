@@ -3,13 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useData } from "@/components/data-provider";
+import { MinusIcon, PlusIcon } from "@/components/icons";
+import { DayBadge, GhostButton, IconButton, Loading, PrimaryButton, RunBadge, card } from "@/components/ui";
 import { blockWeek, effortCue, setsForWeek } from "@/lib/progression";
 import { findInProgress, isoWeekday, localIsoDate, runKmLast7Days } from "@/lib/today";
 import type { ProgramDay } from "@/lib/types";
 import { uuid } from "@/lib/uuid";
 
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
 const formatDay = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+  new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
 export default function TodayPage() {
   const { program, log, ready, pending, apply } = useData();
@@ -17,7 +21,7 @@ export default function TodayPage() {
   const [weekOverride, setWeekOverride] = useState<number | null>(null);
   const [pickOtherDay, setPickOtherDay] = useState(false);
 
-  if (!ready || !program) return <p className="p-4 text-zinc-500">Loading…</p>;
+  if (!ready || !program) return <Loading />;
 
   const today = localIsoDate(new Date());
   const scheduled = program.days.find((d) => d.weekday === isoWeekday(today)) ?? null;
@@ -45,96 +49,117 @@ export default function TodayPage() {
 
   const changeWeek = (delta: number) => setWeekOverride(Math.min(6, Math.max(1, week + delta)));
   const setsLogged = inProgress ? log.setLogs.filter((s) => s.session_id === inProgress.id).length : 0;
+  const showPicker = !inProgress && (!scheduled || pickOtherDay);
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4">
+    <main className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-4">
       <header>
-        <p className="text-zinc-400">{formatDay(today)}</p>
-        <div className="mt-2 flex items-center gap-3">
-          {!inProgress && <StepButton label="−" onClick={() => changeWeek(-1)} disabled={week === 1} />}
-          <p className="text-4xl font-bold tabular-nums">Week {week}</p>
-          {!inProgress && <StepButton label="+" onClick={() => changeWeek(1)} disabled={week === 6} />}
+        <p className="text-[15px] text-fg-2">{formatDay(today)}</p>
+        <div className="mt-1.5 flex items-center justify-between">
+          <h1 className="text-[40px] leading-tight font-extrabold tracking-tight">
+            Week <span className="tabular-nums">{week}</span>
+            <span className="ml-1.5 text-lg font-semibold tracking-normal text-fg-3">of 6</span>
+          </h1>
+          {!inProgress && (
+            <div className="flex gap-2">
+              <IconButton aria-label="Previous week" onClick={() => changeWeek(-1)} disabled={week === 1}>
+                <MinusIcon />
+              </IconButton>
+              <IconButton aria-label="Next week" onClick={() => changeWeek(1)} disabled={week === 6}>
+                <PlusIcon />
+              </IconButton>
+            </div>
+          )}
         </div>
-        <p className="mt-1 text-lg text-lime-300">{effortCue(week)}</p>
+        <div className="mt-3.5 flex gap-1.5" aria-hidden>
+          {[1, 2, 3, 4, 5, 6].map((w) => (
+            <i key={w} className={`h-1.5 flex-1 rounded-full ${w < week ? "bg-accent-dim" : w === week ? "bg-accent" : "bg-surface-2"}`} />
+          ))}
+        </div>
+        <p className="mt-2.5 flex items-center gap-2 text-[15px] font-semibold text-accent">
+          <span className="size-2 rounded-full bg-accent" />
+          {effortCue(week)}
+        </p>
       </header>
 
-      <section>
-        {shownDay ? (
-          <>
-            <h2 className="text-2xl font-bold">
-              {shownDay.code} · {shownDay.name}
-            </h2>
-            <ul className="mt-3 flex flex-col gap-1 text-lg">
-              {exercises.map((e) => (
-                <li key={e.id} className="flex justify-between gap-4">
-                  <span>{e.name}</span>
-                  <span className="shrink-0 tabular-nums text-zinc-400">
-                    {setsForWeek(e.base_sets, week)} × {e.rep_low}–{e.rep_high}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <h2 className="text-2xl font-bold">Rest day</h2>
-        )}
-      </section>
+      {shownDay ? (
+        <section className={`${card} p-4`}>
+          <div className="mb-2 flex items-center gap-3">
+            <DayBadge code={shownDay.code} />
+            <div>
+              <h2 className="text-xl font-bold">{shownDay.name}</h2>
+              <p className="text-[13px] text-fg-3">
+                {WEEKDAYS[shownDay.weekday - 1]} · {exercises.length} exercises
+              </p>
+            </div>
+          </div>
+          <ul>
+            {exercises.map((e) => (
+              <li key={e.id} className="flex justify-between gap-4 border-t border-line py-2">
+                <span>{e.name}</span>
+                <span className="shrink-0 font-medium text-fg-2 tabular-nums">
+                  {setsForWeek(e.base_sets, week)} × {e.rep_low}–{e.rep_high}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : (
+        <section className={`${card} p-4`}>
+          <h2 className="text-xl font-bold">Rest day</h2>
+          <p className="mt-1 text-fg-2">Nothing scheduled. Pick a day below to train anyway.</p>
+        </section>
+      )}
 
-      <section className="rounded-xl bg-zinc-900 p-4">
-        <p className="text-zinc-400">Running, last 7 days</p>
-        <p className="text-3xl font-bold tabular-nums">{runKmLast7Days(log.runs, today)} km</p>
+      <section className={`${card} flex items-center gap-3.5 px-4 py-3.5`}>
+        <RunBadge />
+        <div>
+          <p className="text-[26px] leading-tight font-extrabold tabular-nums">
+            {runKmLast7Days(log.runs, today)}
+            <span className="ml-1 text-[15px] font-semibold text-fg-2">km</span>
+          </p>
+          <p className="text-[13px] text-fg-2">Running · last 7 days</p>
+        </div>
       </section>
 
       {pending > 0 && (
-        <p className="text-zinc-500">
+        <p className="text-sm text-fg-3">
           Saved on this phone · {pending} change{pending > 1 ? "s" : ""} waiting to sync
         </p>
       )}
 
-      <div className="mt-auto flex flex-col gap-3">
+      {/* Sticks above the tab bar so the main action stays in thumb reach on long days. */}
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] -mx-4 mt-auto flex flex-col gap-2 bg-linear-to-t from-bg from-75% to-transparent px-4 pt-6">
         {inProgress ? (
-          <PrimaryButton onClick={() => router.push("/session")}>
-            Resume <span className="block text-base font-medium">{setsLogged} sets logged</span>
+          <PrimaryButton onClick={() => router.push("/session")} className="min-h-[72px] flex-col gap-0">
+            Resume workout
+            <span className="text-sm font-semibold opacity-70">{setsLogged} sets logged</span>
           </PrimaryButton>
-        ) : scheduled && !pickOtherDay ? (
+        ) : showPicker ? (
           <>
-            <button onClick={() => setPickOtherDay(true)} className="h-12 text-zinc-400 underline">
-              Start another day
-            </button>
-            <PrimaryButton onClick={() => start(scheduled)}>Start</PrimaryButton>
+            <div className="grid grid-cols-2 gap-2">
+              {program.days.map((d) => (
+                <button
+                  key={d.code}
+                  onClick={() => start(d)}
+                  className={`${card} flex min-h-[72px] items-center gap-3 p-3 text-left active:bg-surface-2`}
+                >
+                  <DayBadge code={d.code} />
+                  <span className="text-[15px] leading-snug font-semibold">{d.name}</span>
+                </button>
+              ))}
+            </div>
+            {scheduled && <GhostButton onClick={() => setPickOtherDay(false)}>Back</GhostButton>}
           </>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {program.days.map((d) => (
-              <button key={d.code} onClick={() => start(d)} className="min-h-20 rounded-xl bg-zinc-800 p-3 text-left active:bg-zinc-700">
-                <span className="block text-2xl font-bold">{d.code}</span>
-                <span className="text-zinc-300">{d.name}</span>
-              </button>
-            ))}
-          </div>
+          scheduled && (
+            <>
+              <GhostButton onClick={() => setPickOtherDay(true)}>Start another day</GhostButton>
+              <PrimaryButton onClick={() => start(scheduled)}>Start workout</PrimaryButton>
+            </>
+          )
         )}
       </div>
     </main>
-  );
-}
-
-function PrimaryButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className="min-h-20 rounded-2xl bg-lime-400 py-3 text-3xl font-bold text-black active:bg-lime-300">
-      {children}
-    </button>
-  );
-}
-
-function StepButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label === "+" ? "Next week" : "Previous week"}
-      className="h-12 w-12 rounded-xl bg-zinc-800 text-2xl font-bold disabled:opacity-30"
-    >
-      {label}
-    </button>
   );
 }

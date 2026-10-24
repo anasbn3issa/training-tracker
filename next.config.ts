@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
     // Versions the service worker (and its cache) per deploy.
     NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA ?? String(Date.now()),
   },
+  // Browsers ask for /favicon.ico on their own; serve the app icon there.
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/icons/icon-192.png" }];
+  },
   async headers() {
     return [
       {

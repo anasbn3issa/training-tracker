@@ -1,19 +1,34 @@
 @import "tailwindcss";
 
-/* Dark only: the app is used in a gym, high contrast, no light theme. */
-:root {
-  --background: #000000;
-  --foreground: #ffffff;
-  color-scheme: dark;
+/* Dark only: used in a gym, high contrast. One accent (orange) for what the eye
+   must find; blue only to tell runs apart. */
+@theme {
+  --color-bg: #0a0a0b;
+  --color-surface: #141416;
+  --color-surface-2: #1d1d21;
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-fg: #f5f5f7;
+  --color-fg-2: #a1a1aa;
+  --color-fg-3: #6b6b74;
+  --color-accent: #ff8a3d;
+  --color-accent-press: #ff9f5e;
+  --color-accent-soft: rgb(255 138 61 / 0.14);
+  --color-accent-dim: rgb(255 138 61 / 0.45);
+  --color-on-accent: #140a03;
+  --color-run: #64b5ff;
+  --color-run-soft: rgb(100 181 255 / 0.14);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  -webkit-tap-highlight-color: transparent;
 }

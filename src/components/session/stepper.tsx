@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { MinusIcon, PlusIcon } from "../icons";
 
 const LONG_PRESS_MS = 450;
 
@@ -8,7 +9,7 @@ const LONG_PRESS_MS = 450;
  * A big −/+ button. With `onLongPress`, holding it fires that instead of
  * `onPress` (used for the 1 kg fine step).
  */
-function StepButton({ label, onPress, onLongPress }: { label: string; onPress: () => void; onLongPress?: () => void }) {
+function StepButton({ direction, onPress, onLongPress }: { direction: 1 | -1; onPress: () => void; onLongPress?: () => void }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressed = useRef(false);
 
@@ -20,8 +21,8 @@ function StepButton({ label, onPress, onLongPress }: { label: string; onPress: (
   return (
     <button
       type="button"
-      aria-label={label}
-      className="h-16 w-20 shrink-0 touch-manipulation select-none rounded-xl bg-zinc-800 text-4xl font-bold active:bg-zinc-600"
+      aria-label={direction === 1 ? "Increase" : "Decrease"}
+      className="grid h-16 w-[76px] shrink-0 touch-manipulation place-items-center rounded-2xl bg-surface-2 select-none active:bg-line"
       onContextMenu={(e) => e.preventDefault()}
       onPointerDown={() => {
         longPressed.current = false;
@@ -39,7 +40,7 @@ function StepButton({ label, onPress, onLongPress }: { label: string; onPress: (
         if (!longPressed.current) onPress();
       }}
     >
-      {label === "Decrease" ? "−" : "+"}
+      {direction === 1 ? <PlusIcon className="size-7" /> : <MinusIcon className="size-7" />}
     </button>
   );
 }
@@ -57,16 +58,18 @@ export function Stepper({
   fineStep?: (direction: 1 | -1) => void;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <StepButton label="Decrease" onPress={() => onStep(-1)} onLongPress={fineStep && (() => fineStep(-1))} />
+    <div className="flex items-center gap-2.5">
+      <StepButton direction={-1} onPress={() => onStep(-1)} onLongPress={fineStep && (() => fineStep(-1))} />
       <div className="flex min-w-0 flex-1 flex-col items-center">
-        <span className="text-sm uppercase tracking-wide text-zinc-500">{label}</span>
+        <span className="mb-0.5 text-xs font-semibold tracking-[0.08em] text-fg-3 uppercase">{label}</span>
         {children}
       </div>
-      <StepButton label="Increase" onPress={() => onStep(1)} onLongPress={fineStep && (() => fineStep(1))} />
+      <StepButton direction={1} onPress={() => onStep(1)} onLongPress={fineStep && (() => fineStep(1))} />
     </div>
   );
 }
+
+export const stepperValue = "text-[46px] leading-none font-extrabold tracking-tight tabular-nums";
 
 /** Weight value: also a numeric field, so a first working weight can be typed in. */
 export function WeightField({ value, onChange, placeholder }: { value: number | null; onChange: (kg: number | null) => void; placeholder: string }) {
@@ -90,7 +93,7 @@ export function WeightField({ value, onChange, placeholder }: { value: number | 
         const kg = Number(raw);
         if (Number.isFinite(kg) && kg >= 0) onChange(kg);
       }}
-      className="w-full bg-transparent text-center text-5xl font-bold tabular-nums outline-none placeholder:text-lg placeholder:font-medium placeholder:text-zinc-500"
+      className={`${stepperValue} w-full bg-transparent text-center outline-none placeholder:text-base placeholder:font-medium placeholder:tracking-normal placeholder:text-fg-3`}
     />
   );
 }

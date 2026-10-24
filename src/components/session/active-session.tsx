@@ -20,8 +20,10 @@ import {
 import type { Exercise, LogState, Op, Program, Session } from "@/lib/types";
 import { useWakeLock } from "@/lib/use-wake-lock";
 import { uuid } from "@/lib/uuid";
+import { ChevronLeftIcon, ChevronRightIcon, UndoIcon } from "../icons";
+import { GhostButton, PrimaryButton, card } from "../ui";
 import { RestTimer } from "./rest-timer";
-import { Stepper, WeightField } from "./stepper";
+import { Stepper, WeightField, stepperValue } from "./stepper";
 
 type Draft = { weightKg: number | null; reps: number };
 
@@ -67,7 +69,7 @@ export function ActiveSession({
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const item = items[index];
-  if (!item) return <p className="p-4">No exercises for day {session.day_code}.</p>;
+  if (!item) return <p className="p-4 text-fg-2">No exercises for day {session.day_code}.</p>;
 
   const { rx, exercise, suggestion, logged } = item;
   const draft = drafts[exercise.id] ?? nextSetDefaults(suggestion, logged);
@@ -129,64 +131,91 @@ export function ActiveSession({
   const suggestedLine =
     suggestion.weightKg === null && exercise.load_type !== "bodyweight"
       ? "First time: enter a working weight"
-      : `${suggestedLoad}${suggestedLoad === "BW" ? "" : " kg"}${suggestion.advanced ? `  ↑ +${exercise.increment_kg}` : ""}`;
+      : `${suggestedLoad}${suggestedLoad === "BW" ? "" : " kg"}${suggestion.advanced ? ` ↑ +${exercise.increment_kg}` : ""}`;
+
+  const undoLoad = program.exercises.find((e) => e.id === undoable?.exercise_id)?.load_type ?? "machine";
 
   return (
     <main
-      className="flex flex-1 flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+      className="flex flex-1 flex-col gap-3.5 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]"
       onTouchStart={(e) => (touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY })}
       onTouchEnd={(e) => {
         const start = touchStart.current;
         touchStart.current = null;
-        if (!start || (e.target instanceof HTMLElement && e.target.closest("button, input"))) return;
+        if (!start || (e.target instanceof HTMLElement && e.target.closest("button, input, a"))) return;
         const dx = e.changedTouches[0].clientX - start.x;
         const dy = e.changedTouches[0].clientY - start.y;
         if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) go(index + (dx < 0 ? 1 : -1));
       }}
     >
       <header className="flex items-center justify-between">
-        <Link href="/" className="flex h-12 items-center pr-3 text-zinc-400">
-          ‹ Today
+        <Link href="/" className="-ml-1 flex h-12 items-center gap-0.5 pr-1 text-[15px] font-medium text-fg-2">
+          <ChevronLeftIcon className="size-5" />
+          Today
         </Link>
         <div className="flex items-center">
-          <NavButton label="Previous exercise" glyph="‹" disabled={index === 0} onClick={() => go(index - 1)} />
-          <span className="flex w-20 flex-col items-center leading-tight">
-            <span className="text-xs uppercase tracking-wide text-zinc-500">Exercise</span>
-            <span className="text-xl font-bold tabular-nums">
-              {index + 1} / {items.length}
-            </span>
-          </span>
-          <NavButton label="Next exercise" glyph="›" disabled={isLast} onClick={() => go(index + 1)} />
+          <NavButton label="Previous exercise" disabled={index === 0} onClick={() => go(index - 1)}>
+            <ChevronLeftIcon className="size-5" />
+          </NavButton>
+          <div className="flex w-[7.5rem] flex-col items-center gap-1.5">
+            <p className="text-[13px] font-semibold text-fg-2 tabular-nums">
+              Exercise {index + 1} of {items.length}
+            </p>
+            <div className="flex gap-[5px]" aria-hidden>
+              {items.map((it, i) => (
+                <i
+                  key={it.exercise.id}
+                  className={`h-[7px] rounded-full ${
+                    i === index ? "w-[18px] bg-accent" : it.logged.length >= it.suggestion.sets ? "w-[7px] bg-accent-dim" : "w-[7px] bg-surface-2"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <NavButton label="Next exercise" disabled={isLast} onClick={() => go(index + 1)}>
+            <ChevronRightIcon className="size-5" />
+          </NavButton>
         </div>
-        <button onClick={finish} className="h-12 pl-3 text-zinc-400">
+        <GhostButton onClick={finish} className="px-2">
           Finish
-        </button>
+        </GhostButton>
       </header>
 
-      <section>
-        <h1 className="text-3xl font-bold leading-tight">{exercise.name}</h1>
-        {rx.note && <p className="text-amber-300">{rx.note}</p>}
-        <dl className="mt-2 grid grid-cols-[7rem_1fr] gap-y-1 text-lg">
-          <dt className="text-zinc-500">Target</dt>
-          <dd className="tabular-nums">
-            {suggestion.sets} × {rx.rep_low}–{rx.rep_high} <span className="text-lime-300">· {suggestion.effortCue}</span>
-          </dd>
-          <dt className="text-zinc-500">Last</dt>
-          <dd className="tabular-nums">{lastLine}</dd>
-          <dt className="text-zinc-500">Suggested</dt>
-          <dd className="font-semibold tabular-nums">{suggestedLine}</dd>
-        </dl>
-      </section>
+      <div>
+        <h1 className="text-[30px] leading-tight font-extrabold tracking-tight">{exercise.name}</h1>
+        {rx.note && <p className="mt-1.5 inline-block rounded-lg bg-surface-2 px-2.5 py-1 text-sm font-medium text-fg-2">{rx.note}</p>}
+      </div>
 
-      <section aria-label="Sets" className="flex flex-wrap gap-2">
+      <dl className={`${card} px-4 py-1`}>
+        <InfoRow label="Target">
+          <span className="tabular-nums">
+            {suggestion.sets} × {rx.rep_low}–{rx.rep_high}
+          </span>
+          <span className="text-fg-2"> · {suggestion.effortCue}</span>
+        </InfoRow>
+        <InfoRow label="Last">
+          <span className="tabular-nums">{lastLine}</span>
+        </InfoRow>
+        <InfoRow label="Suggested">
+          <span className={`font-bold tabular-nums ${suggestion.advanced ? "text-accent" : suggestion.weightKg === null ? "font-medium text-fg-2" : ""}`}>
+            {suggestedLine}
+          </span>
+        </InfoRow>
+      </dl>
+
+      <section aria-label="Sets" className="grid grid-cols-4 gap-2">
         {Array.from({ length: Math.max(suggestion.sets, logged.length) }, (_, i) => {
           const done = logged[i];
           const current = i === logged.length;
           return (
             <span
               key={i}
-              className={`rounded-lg px-3 py-2 text-lg tabular-nums ${
-                done ? "bg-zinc-700" : current ? "outline-2 outline-lime-400" : "text-zinc-600 outline-1 outline-zinc-800"
+              className={`flex h-[52px] items-center justify-center rounded-[14px] text-[15px] tabular-nums ${
+                done
+                  ? "bg-surface-2 font-bold"
+                  : current
+                    ? "border-2 border-accent font-bold text-accent"
+                    : "border border-line bg-surface text-fg-3"
               }`}
             >
               {done ? `${formatLoad(done.weight_kg, exercise.load_type)}×${done.reps}` : `Set ${i + 1}`}
@@ -195,59 +224,66 @@ export function ActiveSession({
         })}
       </section>
 
-      <div className="flex items-stretch gap-3">
-        <div className="flex-1">
-          <RestTimer endsAt={restEndsAt} />
+      {(restEndsAt !== null || undoable) && (
+        <div className="flex items-stretch gap-2.5">
+          {restEndsAt !== null ? <RestTimer endsAt={restEndsAt} totalSeconds={REST_SECONDS} /> : <div className="flex-1" />}
+          {undoable && (
+            <button
+              onClick={undo}
+              className={`${card} flex w-[104px] flex-col items-center justify-center gap-1 py-2 text-[13px] font-semibold text-fg-2 active:bg-surface-2`}
+            >
+              <UndoIcon className="size-5" />
+              Undo
+              <span className="font-medium text-fg-3 tabular-nums">
+                {formatLoad(undoable.weight_kg, undoLoad)}×{undoable.reps}
+              </span>
+            </button>
+          )}
         </div>
-        {undoable && (
-          <button onClick={undo} className="min-h-12 rounded-xl bg-zinc-900 px-4 text-zinc-300 active:bg-zinc-700">
-            Undo last set
-            <span className="block text-sm tabular-nums text-zinc-500">
-              {formatLoad(undoable.weight_kg, program.exercises.find((e) => e.id === undoable.exercise_id)?.load_type ?? "machine")}×
-              {undoable.reps}
-            </span>
-          </button>
-        )}
-      </div>
+      )}
 
       <div className="mt-auto flex flex-col gap-3">
-        {exercise.load_type !== "bodyweight" && (
-          <Stepper
-            label={isBodyweight(exercise.load_type) ? "Added kg" : "kg"}
-            onStep={(dir) => setDraft({ ...draft, weightKg: stepWeight(draft.weightKg, dir * WEIGHT_STEP_KG) })}
-            fineStep={(dir) => setDraft({ ...draft, weightKg: stepWeight(draft.weightKg, dir * WEIGHT_FINE_STEP_KG) })}
-          >
-            <WeightField
-              value={draft.weightKg}
-              onChange={(kg) => setDraft({ ...draft, weightKg: kg })}
-              placeholder={exercise.load_type === "bodyweight_plus" ? "0 = BW" : "First weight"}
-            />
+        <section className={`${card} flex flex-col gap-2.5 p-3`}>
+          {exercise.load_type !== "bodyweight" && (
+            <Stepper
+              label={isBodyweight(exercise.load_type) ? "Added kg" : "kg"}
+              onStep={(dir) => setDraft({ ...draft, weightKg: stepWeight(draft.weightKg, dir * WEIGHT_STEP_KG) })}
+              fineStep={(dir) => setDraft({ ...draft, weightKg: stepWeight(draft.weightKg, dir * WEIGHT_FINE_STEP_KG) })}
+            >
+              <WeightField
+                value={draft.weightKg}
+                onChange={(kg) => setDraft({ ...draft, weightKg: kg })}
+                placeholder={exercise.load_type === "bodyweight_plus" ? "0 = bodyweight" : "First weight"}
+              />
+            </Stepper>
+          )}
+          <Stepper label="reps" onStep={(dir) => setDraft({ ...draft, reps: stepReps(draft.reps, dir) })}>
+            <span className={stepperValue}>{draft.reps}</span>
           </Stepper>
-        )}
-        <Stepper label="reps" onStep={(dir) => setDraft({ ...draft, reps: stepReps(draft.reps, dir) })}>
-          <span className="text-5xl font-bold tabular-nums">{draft.reps}</span>
-        </Stepper>
+        </section>
 
-        <button
-          onClick={onPrimary}
-          className="min-h-20 touch-manipulation rounded-2xl bg-lime-400 text-3xl font-bold text-black active:bg-lime-300"
-        >
+        <PrimaryButton onClick={onPrimary} className="min-h-[72px] text-[22px]">
           {primaryLabel}
-        </button>
-        {prescribedDone && (
-          <button onClick={logSet} className="h-12 text-zinc-400 underline">
-            Add set {logged.length + 1}
-          </button>
-        )}
+        </PrimaryButton>
+        {prescribedDone && <GhostButton onClick={logSet}>Add set {logged.length + 1}</GhostButton>}
       </div>
     </main>
   );
 }
 
-function NavButton({ label, glyph, disabled, onClick }: { label: string; glyph: string; disabled: boolean; onClick: () => void }) {
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <button aria-label={label} disabled={disabled} onClick={onClick} className="h-12 w-12 text-3xl disabled:opacity-20">
-      {glyph}
+    <div className="flex items-baseline justify-between gap-4 border-line py-2.5 [&+&]:border-t">
+      <dt className="shrink-0 text-xs font-semibold tracking-[0.06em] text-fg-3 uppercase">{label}</dt>
+      <dd className="text-right">{children}</dd>
+    </div>
+  );
+}
+
+function NavButton({ label, disabled, onClick, children }: { label: string; disabled: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button aria-label={label} disabled={disabled} onClick={onClick} className="grid size-12 place-items-center text-fg disabled:opacity-20">
+      {children}
     </button>
   );
 }

@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { useData } from "@/components/data-provider";
+import { Loading } from "@/components/ui";
 import { ActiveSession } from "@/components/session/active-session";
 import { findInProgress, localIsoDate } from "@/lib/today";
 
 export default function SessionPage() {
   const { program, log, ready, apply } = useData();
-  if (!ready || !program) return <p className="p-4 text-zinc-500">Loading…</p>;
+  if (!ready || !program) return <Loading />;
 
   const session = findInProgress(log.sessions, localIsoDate(new Date()));
   if (!session) {
     return (
       <main className="flex flex-1 flex-col gap-4 p-4">
-        <p className="text-xl">No session in progress.</p>
-        <Link href="/" className="text-lime-400 underline">
+        <p className="text-xl font-semibold">No session in progress.</p>
+        <Link href="/" className="font-semibold text-accent">
           Back to Today
         </Link>
       </main>

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useData } from "@/components/data-provider";
+import { Loading, PrimaryButton, ScreenTitle, card } from "@/components/ui";
 import { buildRun, formatPace, type RunForm } from "@/lib/history";
 import { localIsoDate } from "@/lib/today";
 import type { Run } from "@/lib/types";
@@ -15,12 +16,12 @@ const KINDS: { value: Run["kind"]; label: string }[] = [
   { value: "race", label: "Race" },
 ];
 
-const inputClass = "h-14 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-xl tabular-nums";
+const inputClass = "h-14 w-full rounded-2xl border border-line bg-surface px-4 text-lg tabular-nums outline-none placeholder:text-fg-3 focus:border-accent";
 
 export default function LogRunPage() {
   const { ready } = useData();
   // The form mounts only on the client, so "today" is the phone's date, not the build's.
-  if (!ready) return <p className="p-4 text-zinc-500">Loading…</p>;
+  if (!ready) return <Loading />;
   return <RunFormView />;
 }
 
@@ -52,8 +53,8 @@ function RunFormView() {
   }
 
   return (
-    <main className="flex flex-col gap-5 p-4">
-      <h1 className="text-3xl font-bold">Log run</h1>
+    <main className="flex flex-col gap-5 px-4 pt-5 pb-4">
+      <ScreenTitle>Log run</ScreenTitle>
 
       <Field label="Date" htmlFor="run-date">
         <input id="run-date" type="date" value={form.date} max={localIsoDate(new Date())} onChange={(e) => set({ date: e.target.value })} className={inputClass} />
@@ -76,14 +77,14 @@ function RunFormView() {
       <Field label="Duration">
         <div className="flex items-center gap-2">
           <input inputMode="numeric" placeholder="min" aria-label="Minutes" value={form.minutes} onChange={(e) => set({ minutes: e.target.value })} className={inputClass} />
-          <span className="text-2xl text-zinc-500">:</span>
+          <span className="text-2xl text-fg-3">:</span>
           <input inputMode="numeric" placeholder="sec" aria-label="Seconds" value={form.seconds} onChange={(e) => set({ seconds: e.target.value })} className={inputClass} />
         </div>
       </Field>
 
-      <p className="text-lg">
-        <span className="text-zinc-500">Pace </span>
-        <span className="text-2xl font-bold tabular-nums">{preview ? formatPace(preview.distance_km, preview.duration_sec) : "—"}</span>
+      <p className={`${card} flex items-baseline justify-between px-4 py-3`}>
+        <span className="text-xs font-semibold tracking-[0.08em] text-fg-3 uppercase">Pace</span>
+        <span className="text-2xl font-extrabold tabular-nums">{preview ? formatPace(preview.distance_km, preview.duration_sec) : "—"}</span>
       </p>
 
       <Field label="Effort (1–10, optional)">
@@ -100,13 +101,9 @@ function RunFormView() {
         <textarea id="run-notes" rows={3} value={form.notes} onChange={(e) => set({ notes: e.target.value })} className={`${inputClass} h-auto py-3`} />
       </Field>
 
-      <button
-        onClick={save}
-        disabled={!preview}
-        className="min-h-16 rounded-2xl bg-lime-400 text-2xl font-bold text-black active:bg-lime-300 disabled:bg-zinc-800 disabled:text-zinc-500"
-      >
+      <PrimaryButton onClick={save} disabled={!preview}>
         Save run
-      </button>
+      </PrimaryButton>
     </main>
   );
 }
@@ -116,7 +113,7 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   if (htmlFor) {
     return (
       <div className="flex flex-col gap-2">
-        <label htmlFor={htmlFor} className="text-zinc-400">
+        <label htmlFor={htmlFor} className="text-sm font-medium text-fg-2">
           {label}
         </label>
         {children}
@@ -125,7 +122,7 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   }
   return (
     <div role="group" aria-label={label} className="flex flex-col gap-2">
-      <span className="text-zinc-400">{label}</span>
+      <span className="text-sm font-medium text-fg-2">{label}</span>
       {children}
     </div>
   );
@@ -137,7 +134,7 @@ function Choice({ selected, onClick, children }: { selected: boolean; onClick: (
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`h-12 rounded-xl text-lg font-semibold ${selected ? "bg-sky-400 text-black" : "bg-zinc-800 text-zinc-200"}`}
+      className={`h-12 rounded-[14px] text-base font-semibold ${selected ? "bg-run text-bg" : "border border-line bg-surface text-fg-2 active:bg-surface-2"}`}
     >
       {children}
     </button>
