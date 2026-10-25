@@ -7,7 +7,7 @@ import { CalendarIcon, HistoryIcon, RunIcon } from "./icons";
 const TABS = [
   { href: "/", label: "Today", Icon: CalendarIcon },
   { href: "/history", label: "History", Icon: HistoryIcon },
-  { href: "/run", label: "Log run", Icon: RunIcon },
+  { href: "/run", label: "Run", Icon: RunIcon },
 ];
 
 export function TabBar() {

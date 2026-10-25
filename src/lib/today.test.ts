@@ -8,6 +8,7 @@ const session = (id: string, date: string, completed_at: string | null = null): 
   date,
   block_week: 4,
   notes: null,
+  title: null,
   completed_at,
 });
 
@@ -84,6 +85,13 @@ describe("staleSessionOps", () => {
   it("deletes an abandoned session with no sets", () => {
     expect(staleSessionOps([session("empty", "2026-10-21")], [], "2026-10-23")).toEqual([
       { kind: "delete", table: "sessions", id: "empty" },
+    ]);
+  });
+
+  it("completes an abandoned custom workout (title + notes) at the end of its day instead of deleting it", () => {
+    const custom: Session = { ...session("arms", "2026-10-21"), day_code: null, title: "Arms", notes: "felt strong" };
+    expect(staleSessionOps([custom], [], "2026-10-23")).toEqual([
+      { kind: "upsert", table: "sessions", row: { ...custom, completed_at: "2026-10-21T23:59:59Z" } },
     ]);
   });
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/components/data-provider";
 import { ChevronDownIcon } from "@/components/icons";
-import { DayBadge, Loading, RunBadge, ScreenTitle, card } from "@/components/ui";
+import { Loading, RunBadge, ScreenTitle, SessionBadge, card } from "@/components/ui";
 import { formatDuration, formatPace, historyItems, type HistoryItem } from "@/lib/history";
 import { formatSets } from "@/lib/session";
 
@@ -78,14 +78,15 @@ function SessionRow({
   onDelete: () => void;
 }) {
   const setCount = item.exercises.reduce((n, e) => n + e.sets.length, 0);
+  const custom = item.session.day_code === null;
   return (
     <li className={card}>
       <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 w-full items-center gap-3 p-3.5 text-left">
-        <DayBadge code={item.session.day_code} />
+        <SessionBadge dayCode={item.session.day_code} />
         <span className="min-w-0 flex-1">
           <span className="block text-[17px] font-bold">{item.dayName}</span>
           <span className="mt-0.5 block text-[13px] text-fg-3">
-            {formatDate(item.date)} · week {item.session.block_week} · {setCount} sets
+            {formatDate(item.date)} · {custom ? "custom workout" : `week ${item.session.block_week} · ${setCount} sets`}
             {item.session.completed_at === null && <span className="text-accent"> · in progress</span>}
           </span>
         </span>
@@ -93,7 +94,8 @@ function SessionRow({
       </button>
       {open && (
         <dl className="flex flex-col gap-2.5 pr-3.5 pb-3.5 pl-[66px]">
-          {item.exercises.length === 0 && <p className="text-fg-3">No sets logged.</p>}
+          {item.session.notes && <p className="text-[15px] whitespace-pre-line text-fg-2">{item.session.notes}</p>}
+          {!custom && item.exercises.length === 0 && <p className="text-fg-3">No sets logged.</p>}
           {item.exercises.map((e) => (
             <div key={e.id}>
               <dt className="text-[13px] text-fg-3">{e.name}</dt>

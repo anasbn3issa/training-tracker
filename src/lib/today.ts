@@ -35,11 +35,14 @@ export function findInProgress(sessions: Session[], today: string): Session | nu
 /**
  * Sessions left in progress on an earlier day: completed at their last logged
  * set, or deleted if nothing was logged. Keeps Today from offering a stale Resume.
+ * Custom workouts never have sets; their title and notes are worth keeping, so
+ * they are completed at the end of their day.
  */
 export function staleSessionOps(sessions: Session[], setLogs: SetLog[], today: string): Op[] {
   return sessions
     .filter((s) => s.completed_at === null && s.date < today)
     .map((s): Op => {
+      if (s.day_code === null) return { kind: "upsert", table: "sessions", row: { ...s, completed_at: `${s.date}T23:59:59Z` } };
       const lastDone = setLogs
         .filter((l) => l.session_id === s.id)
         .map((l) => l.done_at)

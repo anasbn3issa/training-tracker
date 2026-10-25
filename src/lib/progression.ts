@@ -17,7 +17,7 @@ export type Suggestion = {
   lastSets: LoggedSet[];
 };
 
-type SessionRef = { id: string; day_code: string; date: string; completed_at: string | null };
+type SessionRef = { id: string; day_code: string | null; date: string; completed_at: string | null };
 type SetRef = LoggedSet & { session_id: string; exercise_id: string; set_index: number };
 
 const DELOAD_WEEK = 6;

@@ -33,11 +33,14 @@ const isBodyweight = (t: Exercise["load_type"]) => t === "bodyweight" || t === "
 
 export function ActiveSession({
   session,
+  dayCode,
   program,
   log,
   apply,
 }: {
   session: Session;
+  /** The program day (A–D); custom workouts use CustomSession. */
+  dayCode: string;
   program: Program;
   log: LogState;
   apply: (ops: Op[]) => void;
@@ -46,11 +49,11 @@ export function ActiveSession({
   const router = useRouter();
 
   const items = program.prescriptions
-    .filter((rx) => rx.day_code === session.day_code)
+    .filter((rx) => rx.day_code === dayCode)
     .flatMap((rx) => {
       const exercise = program.exercises.find((e) => e.id === rx.exercise_id);
       if (!exercise) return [];
-      const last = findLastSets(log.sessions, log.setLogs, session.day_code, rx.exercise_id);
+      const last = findLastSets(log.sessions, log.setLogs, dayCode, rx.exercise_id);
       return [
         {
           rx,
@@ -69,7 +72,7 @@ export function ActiveSession({
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const item = items[index];
-  if (!item) return <p className="p-4 text-fg-2">No exercises for day {session.day_code}.</p>;
+  if (!item) return <p className="p-4 text-fg-2">No exercises for day {dayCode}.</p>;
 
   const { rx, exercise, suggestion, logged } = item;
   const draft = drafts[exercise.id] ?? nextSetDefaults(suggestion, logged);

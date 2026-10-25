@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useData } from "@/components/data-provider";
 import { Loading } from "@/components/ui";
 import { ActiveSession } from "@/components/session/active-session";
+import { CustomSession } from "@/components/session/custom-session";
 import { findInProgress, localIsoDate } from "@/lib/today";
 
 export default function SessionPage() {
@@ -22,5 +23,6 @@ export default function SessionPage() {
     );
   }
   // key: a new session starts from a fresh screen state.
-  return <ActiveSession key={session.id} session={session} program={program} log={log} apply={apply} />;
+  if (session.day_code === null) return <CustomSession key={session.id} session={session} apply={apply} />;
+  return <ActiveSession key={session.id} session={session} dayCode={session.day_code} program={program} log={log} apply={apply} />;
 }

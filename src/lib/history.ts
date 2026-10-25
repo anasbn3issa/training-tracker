@@ -21,7 +21,10 @@ export function historyItems(log: LogState, program: Program): HistoryItem[] {
       kind: "session",
       date: session.date,
       session,
-      dayName: program.days.find((d) => d.code === session.day_code)?.name ?? session.day_code,
+      dayName:
+        session.day_code === null
+          ? (session.title ?? "Custom workout")
+          : (program.days.find((d) => d.code === session.day_code)?.name ?? session.day_code),
       exercises: exerciseIds.map((id) => {
         const exercise = program.exercises.find((e) => e.id === id);
         return {

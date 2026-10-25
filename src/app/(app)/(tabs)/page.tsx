@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useData } from "@/components/data-provider";
 import { MinusIcon, PlusIcon } from "@/components/icons";
-import { DayBadge, GhostButton, IconButton, Loading, PrimaryButton, RunBadge, card } from "@/components/ui";
+import { DayBadge, GhostButton, IconButton, Loading, PrimaryButton, RunBadge, SessionBadge, card } from "@/components/ui";
 import { blockWeek, effortCue, setsForWeek } from "@/lib/progression";
 import { findInProgress, isoWeekday, localIsoDate, runKmLast7Days } from "@/lib/today";
 import type { ProgramDay } from "@/lib/types";
@@ -20,6 +20,7 @@ export default function TodayPage() {
   const router = useRouter();
   const [weekOverride, setWeekOverride] = useState<number | null>(null);
   const [pickOtherDay, setPickOtherDay] = useState(false);
+  const [customTitle, setCustomTitle] = useState<string | null>(null); // non-null while naming a custom workout
 
   if (!ready || !program) return <Loading />;
 
@@ -33,19 +34,22 @@ export default function TodayPage() {
     .filter((p) => p.day_code === shownDay?.code)
     .map((p) => ({ ...p, name: program.exercises.find((e) => e.id === p.exercise_id)?.name ?? p.exercise_id }));
 
-  function start(day: ProgramDay) {
+  function startSession(target: { day_code: string; title: null } | { day_code: null; title: string }) {
     apply([
       {
         kind: "upsert",
         table: "sessions",
-        row: { id: uuid(), day_code: day.code, date: today, block_week: week, notes: null, completed_at: null },
+        row: { id: uuid(), ...target, date: today, block_week: week, notes: null, completed_at: null },
       },
     ]);
     // Next keeps this page mounted; reset the picker for when we come back.
     setPickOtherDay(false);
+    setCustomTitle(null);
     setWeekOverride(null);
     router.push("/session");
   }
+  const start = (day: ProgramDay) => startSession({ day_code: day.code, title: null });
+  const startCustom = (title: string) => startSession({ day_code: null, title: title.trim() });
 
   const changeWeek = (delta: number) => setWeekOverride(Math.min(6, Math.max(1, week + delta)));
   const setsLogged = inProgress ? log.setLogs.filter((s) => s.session_id === inProgress.id).length : 0;
@@ -82,7 +86,15 @@ export default function TodayPage() {
         </p>
       </header>
 
-      {shownDay ? (
+      {inProgress?.day_code === null ? (
+        <section className={`${card} flex items-center gap-3 p-4`}>
+          <SessionBadge dayCode={null} />
+          <div>
+            <h2 className="text-xl font-bold">{inProgress.title}</h2>
+            <p className="text-[13px] text-fg-3">Custom workout · in progress</p>
+          </div>
+        </section>
+      ) : shownDay ? (
         <section className={`${card} p-4`}>
           <div className="mb-2 flex items-center gap-3">
             <DayBadge code={shownDay.code} />
@@ -133,8 +145,37 @@ export default function TodayPage() {
         {inProgress ? (
           <PrimaryButton onClick={() => router.push("/session")} className="min-h-[72px] flex-col gap-0">
             Resume workout
-            <span className="text-sm font-semibold opacity-70">{setsLogged} sets logged</span>
+            <span className="text-sm font-semibold opacity-70">
+              {inProgress.day_code === null ? inProgress.title : `${setsLogged} sets logged`}
+            </span>
           </PrimaryButton>
+        ) : customTitle !== null ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (customTitle.trim()) startCustom(customTitle);
+            }}
+            className="flex flex-col gap-2"
+          >
+            <label htmlFor="custom-title" className="text-sm font-medium text-fg-2">
+              Custom workout title
+            </label>
+            <input
+              id="custom-title"
+              autoFocus
+              maxLength={80}
+              value={customTitle}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              placeholder="e.g. Arms, Hyrox class"
+              className="h-14 rounded-2xl border border-line bg-surface px-4 text-lg outline-none placeholder:text-fg-3 focus:border-accent"
+            />
+            <PrimaryButton type="submit" disabled={!customTitle.trim()}>
+              Start custom workout
+            </PrimaryButton>
+            <GhostButton type="button" onClick={() => setCustomTitle(null)}>
+              Back
+            </GhostButton>
+          </form>
         ) : showPicker ? (
           <>
             <div className="grid grid-cols-2 gap-2">
@@ -149,6 +190,13 @@ export default function TodayPage() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => setCustomTitle("")}
+              className={`${card} flex min-h-[60px] items-center gap-3 p-3 text-left active:bg-surface-2`}
+            >
+              <SessionBadge dayCode={null} />
+              <span className="text-[15px] font-semibold">Custom workout</span>
+            </button>
             {scheduled && <GhostButton onClick={() => setPickOtherDay(false)}>Back</GhostButton>}
           </>
         ) : (

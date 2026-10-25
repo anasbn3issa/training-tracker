@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyOps } from "./ops";
 import type { LogState, Session, SetLog } from "./types";
 
-const session: Session = { id: "s1", day_code: "A", date: "2026-10-26", block_week: 5, notes: null, completed_at: null };
+const session: Session = { id: "s1", day_code: "A", date: "2026-10-26", block_week: 5, notes: null, title: null, completed_at: null };
 const set = (id: string, reps: number): SetLog => ({
   id,
   session_id: "s1",

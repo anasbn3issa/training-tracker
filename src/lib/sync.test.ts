@@ -6,7 +6,7 @@ import type { LogState, Op, Program, Run, Session, SetLog } from "./types";
 const program: Program = { days: [], prescriptions: [], exercises: [], blockStartDate: "2026-09-28" };
 const TODAY = "2026-10-26";
 
-const session: Session = { id: "s1", day_code: "A", date: TODAY, block_week: 5, notes: null, completed_at: null };
+const session: Session = { id: "s1", day_code: "A", date: TODAY, block_week: 5, notes: null, title: null, completed_at: null };
 const set = (id: string, reps = 10): SetLog => ({
   id,
   session_id: "s1",

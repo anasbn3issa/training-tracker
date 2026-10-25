@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { RunIcon } from "./icons";
+import { DumbbellIcon, RunIcon } from "./icons";
 
 export const card = "rounded-[18px] border border-line bg-surface";
 export const eyebrow = "text-xs font-semibold uppercase tracking-[0.08em] text-fg-3";
@@ -31,6 +31,16 @@ export function IconButton({ className = "", ...props }: ButtonProps) {
 /** Day code (A–D) in an orange tile: marks lifting sessions. */
 export function DayBadge({ code }: { code: string }) {
   return <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-[17px] font-extrabold text-accent">{code}</span>;
+}
+
+/** Day code (A–D) for program sessions, a dumbbell for custom workouts. */
+export function SessionBadge({ dayCode }: { dayCode: string | null }) {
+  if (dayCode !== null) return <DayBadge code={dayCode} />;
+  return (
+    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+      <DumbbellIcon className="size-5" />
+    </span>
+  );
 }
 
 /** Blue tile: marks runs. */

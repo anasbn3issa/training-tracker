@@ -25,6 +25,7 @@ const session = (id: string, date: string, day_code = "B"): Session => ({
   date,
   block_week: 5,
   notes: null,
+  title: null,
   completed_at: `${date}T19:00:00Z`,
 });
 const set = (session_id: string, exercise_id: string, set_index: number, reps: number): SetLog => ({
@@ -63,6 +64,16 @@ describe("historyItems", () => {
       ["Leg press", [12]],
       ["Old move", [10]], // no longer in the program: listed last
     ]);
+  });
+});
+
+describe("historyItems: custom workouts", () => {
+  it("uses the title as the name and has no exercises", () => {
+    const custom: Session = { ...session("x", "2026-10-25"), day_code: null, title: "Hyrox class", notes: "brutal" };
+    const [item] = historyItems({ sessions: [custom], setLogs: [], runs: [] }, program);
+    if (item.kind !== "session") throw new Error("expected a session");
+    expect(item.dayName).toBe("Hyrox class");
+    expect(item.exercises).toEqual([]);
   });
 });
 

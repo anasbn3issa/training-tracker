@@ -5,14 +5,18 @@ import type { Op } from "@/lib/types";
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const timestamp = z.iso.datetime({ offset: true });
 
-const session = z.object({
-  id: z.uuid(),
-  day_code: z.string(),
-  date: isoDate,
-  block_week: z.int().min(1).max(6),
-  notes: z.string().nullable(),
-  completed_at: timestamp.nullable(),
-});
+// A program day (A–D), or a custom workout identified by its title.
+const session = z
+  .object({
+    id: z.uuid(),
+    day_code: z.string().nullable(),
+    title: z.string().trim().min(1).max(80).nullable(),
+    date: isoDate,
+    block_week: z.int().min(1).max(6),
+    notes: z.string().nullable(),
+    completed_at: timestamp.nullable(),
+  })
+  .refine((s) => s.day_code !== null || s.title !== null, "a session needs a day_code or a title");
 
 const setLog = z.object({
   id: z.uuid(),
