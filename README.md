@@ -87,6 +87,6 @@ ops on top (last write wins).
    npx supabase link --project-ref <project-ref>
    npx supabase db push --include-seed
    ```
-2. Vercel: import the GitHub repo, then set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `APP_PASSWORD`,
+2. Vercel: import the GitHub repo, then set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `PASSWORD_<ID>` for each user,
    `AUTH_SECRET` for Production. Every push to `main` deploys.
 3. Functions run in `dub1` (Dublin, `vercel.json`), next to the Supabase project in `eu-west-1`.
