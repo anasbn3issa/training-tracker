@@ -18,6 +18,8 @@ function createStore() {
   return new SyncStore({
     // One offline cache per user, so a shared phone never mixes their data.
     kv: idbKv(() => `training-tracker-${currentUserId()}`),
+    // Before multi-user there was one cache, and it was Anas's: adopt anything still unsent.
+    legacyKv: currentUserId() === "anas" ? idbKv(() => "training-tracker") : undefined,
     fetch: (url, init) => fetch(url, init),
     schedule: (fn, ms) => setTimeout(fn, ms),
     today: () => localIsoDate(new Date()),

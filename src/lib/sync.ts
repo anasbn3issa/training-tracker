@@ -15,6 +15,8 @@ export type Kv = {
 
 type Deps = {
   kv: Kv;
+  /** The single-user cache from before multi-user: its unsent queue is adopted once, then emptied. */
+  legacyKv?: Kv;
   fetch: (url: string, init?: RequestInit) => Promise<Response>;
   schedule: (fn: () => void, ms: number) => void;
   /** The device's local date, for closing stale sessions. */
@@ -48,6 +50,8 @@ export class SyncStore {
   private retryScheduled = false;
   private failures = 0;
   private started = false;
+  // Until the cache is loaded and merged, writing it would overwrite the previous queue.
+  private loaded = false;
 
   constructor(private deps: Deps) {}
 
@@ -82,11 +86,8 @@ export class SyncStore {
     if (this.started) return;
     this.started = true;
 
-    const [program, log, outbox] = await Promise.all([this.deps.kv.get("program"), this.deps.kv.get("log"), this.deps.kv.get("outbox")]);
-    const early = this.outbox; // anything applied while the cache was loading
-    this.outbox = [...(outbox ?? []), ...early];
-    if (program && log) this.update({ program, log: applyOps(log, early), ready: true });
-    else this.update({});
+    // Merged under the same lock as flushes: a flush must never slice a queue it didn't send from.
+    await this.exclusive(() => this.loadCache());
 
     await this.exclusive(() => this.pull());
     if (this.snapshot.ready) {
@@ -94,6 +95,27 @@ export class SyncStore {
       this.apply(staleSessionOps(sessions, setLogs, this.deps.today()));
     }
     this.sync();
+  }
+
+  private async loadCache() {
+    const [program, log, outbox, legacy] = await Promise.all([
+      this.deps.kv.get("program"),
+      this.deps.kv.get("log"),
+      this.deps.kv.get("outbox"),
+      this.deps.legacyKv?.get("outbox"),
+    ]);
+    const adopted = legacy ?? []; // older than anything else, so it goes first
+    const early = this.outbox; // applied (and not yet sent) while the cache was loading
+    this.outbox = [...adopted, ...(outbox ?? []), ...early];
+    this.loaded = true;
+    if (program && log) this.update({ program, log: applyOps(log, [...adopted, ...early]), ready: true });
+    else this.update({});
+    this.persist();
+    if (adopted.length > 0 && this.deps.legacyKv) {
+      // Save the merged queue before emptying the old one: replaying an op twice is harmless, losing one isn't.
+      await this.deps.kv.set("outbox", this.outbox);
+      await this.deps.legacyKv.set("outbox", []);
+    }
   }
 
   /** Resolves once no pull or flush is running or queued. */
@@ -111,6 +133,7 @@ export class SyncStore {
   }
 
   private persist() {
+    if (!this.loaded) return;
     void this.deps.kv.set("outbox", this.outbox);
     void this.deps.kv.set("log", this.snapshot.log);
   }

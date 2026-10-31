@@ -72,11 +72,12 @@ function fakeServer(initial: LogState = { sessions: [], setLogs: [], runs: [], b
   return server;
 }
 
-function setup(server = fakeServer(), kv = memoryKv()) {
+function setup(server = fakeServer(), kv = memoryKv(), legacyKv?: Kv) {
   const retries: (() => void)[] = [];
   let unauthorized = 0;
   const store = new SyncStore({
     kv,
+    legacyKv,
     fetch: server.fetch,
     schedule: (fn) => retries.push(fn),
     today: () => TODAY,
@@ -152,6 +153,39 @@ describe("SyncStore: writes", () => {
     await runRetries();
     expect(server.state.sessions).toEqual([session]);
     expect(server.state.setLogs).toEqual([]);
+  });
+});
+
+describe("SyncStore: queue left in the pre-multi-user cache", () => {
+  it("is picked up, synced first, then emptied", async () => {
+    const legacy = memoryKv();
+    legacy.data.outbox = [upsertSession, upsertSet("x")];
+    const { store, server } = setup(fakeServer(), memoryKv(), legacy);
+    store.apply([upsertSet("y", 8)]); // something new, logged after the old queue
+    await store.start();
+    await store.idle();
+    expect(server.state.sessions).toEqual([session]);
+    expect(server.state.setLogs.map((l) => l.id).sort()).toEqual(["x", "y"]);
+    expect(store.getSnapshot().pending).toBe(0);
+    expect(legacy.data.outbox).toEqual([]);
+  });
+
+  it("offline: kept in the new queue, and not imported twice", async () => {
+    const legacy = memoryKv();
+    legacy.data.outbox = [upsertSession, upsertSet("x")];
+    const kv = memoryKv();
+    const offline = fakeServer();
+    offline.mode = "down";
+    const first = setup(offline, kv, legacy);
+    await first.store.start();
+    await first.store.idle();
+    expect(first.store.getSnapshot().pending).toBe(2);
+    expect(kv.data.outbox).toHaveLength(2);
+    expect(legacy.data.outbox).toEqual([]);
+
+    const second = setup(offline, kv, legacy);
+    await second.store.start();
+    expect(second.store.getSnapshot().pending).toBe(2);
   });
 });
 
