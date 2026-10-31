@@ -3,7 +3,6 @@ import { buildRun, formatDuration, formatPace, historyItems, type RunForm } from
 import type { LogState, Program, Run, Session, SetLog } from "./types";
 
 const program: Program = {
-  blockStartDate: "2026-09-28",
   days: [
     { code: "A", name: "Chest + Triceps", weekday: 1 },
     { code: "B", name: "Legs", weekday: 3 },
@@ -43,6 +42,7 @@ describe("historyItems", () => {
   const log: LogState = {
     sessions: [session("b1", "2026-10-21"), session("b2", "2026-10-28")],
     runs: [run("r1", "2026-10-24"), run("r2", "2026-10-28")],
+    blockStartDate: "2026-09-21",
     setLogs: [set("b2", "leg-press", 1, 12), set("b2", "squat", 2, 7), set("b2", "squat", 1, 8), set("b2", "old-move", 1, 10)],
   };
 
@@ -70,7 +70,7 @@ describe("historyItems", () => {
 describe("historyItems: custom workouts", () => {
   it("uses the title as the name and has no exercises", () => {
     const custom: Session = { ...session("x", "2026-10-25"), day_code: null, title: "Hyrox class", notes: "brutal" };
-    const [item] = historyItems({ sessions: [custom], setLogs: [], runs: [] }, program);
+    const [item] = historyItems({ sessions: [custom], setLogs: [], runs: [], blockStartDate: "2026-09-21" }, program);
     if (item.kind !== "session") throw new Error("expected a session");
     expect(item.dayName).toBe("Hyrox class");
     expect(item.exercises).toEqual([]);

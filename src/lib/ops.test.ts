@@ -12,7 +12,7 @@ const set = (id: string, reps: number): SetLog => ({
   reps,
   done_at: "2026-10-26T18:00:00Z",
 });
-const empty: LogState = { sessions: [], setLogs: [], runs: [] };
+const empty: LogState = { sessions: [], setLogs: [], runs: [], blockStartDate: "2026-09-28" };
 
 describe("applyOps", () => {
   it("inserts new rows", () => {
@@ -37,6 +37,10 @@ describe("applyOps", () => {
   it("deleting a session also drops its sets, like the DB cascade", () => {
     const state = applyOps({ ...empty, sessions: [session], setLogs: [set("x", 10)] }, [{ kind: "delete", table: "sessions", id: "s1" }]);
     expect(state).toEqual(empty);
+  });
+
+  it("set_block_start changes the user's block start", () => {
+    expect(applyOps(empty, [{ kind: "set_block_start", date: "2026-09-21" }]).blockStartDate).toBe("2026-09-21");
   });
 
   it("does not mutate the input state", () => {

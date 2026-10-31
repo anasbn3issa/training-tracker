@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { PrimaryButton } from "@/components/ui";
+import { USERS } from "@/lib/users";
 
 export default function LoginPage() {
+  const [user, setUser] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -25,21 +27,40 @@ export default function LoginPage() {
         {/* eslint-disable-next-line @next/next/no-img-element -- tiny static icon, served without auth */}
         <img src="/icons/icon-192.png" alt="" width={64} height={64} className="rounded-2xl" />
         <h1 className="mt-4 text-[32px] font-extrabold tracking-tight">Training Tracker</h1>
-        <p className="text-fg-2">Enter your password to continue.</p>
+        <p className="text-fg-2">Who&apos;s training?</p>
       </div>
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
+        <div role="radiogroup" aria-label="User" className="grid grid-cols-2 gap-2">
+          {USERS.map((u) => (
+            <button
+              key={u.id}
+              type="button"
+              role="radio"
+              aria-checked={user === u.id}
+              onClick={() => {
+                setUser(u.id);
+                setError(false);
+              }}
+              className={`h-16 rounded-[18px] text-xl font-bold ${
+                user === u.id ? "bg-accent text-on-accent" : "border border-line bg-surface text-fg active:bg-surface-2"
+              }`}
+            >
+              {u.name}
+            </button>
+          ))}
+        </div>
+        <input type="hidden" name="user" value={user ?? ""} />
         <input
           name="password"
           type="password"
           autoComplete="current-password"
           placeholder="Password"
           aria-label="Password"
-          autoFocus
           required
           className="h-14 rounded-2xl border border-line bg-surface px-4 text-lg outline-none placeholder:text-fg-3 focus:border-accent"
         />
-        {error && <p className="text-sm font-medium text-red-400">Wrong password</p>}
-        <PrimaryButton disabled={pending}>Enter</PrimaryButton>
+        {error && <p className="text-sm font-medium text-danger">Wrong password</p>}
+        <PrimaryButton disabled={pending || !user}>Enter</PrimaryButton>
       </form>
     </main>
   );

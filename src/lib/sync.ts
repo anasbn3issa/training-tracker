@@ -36,7 +36,7 @@ const FIRST_RETRY_MS = 2_000;
 const MAX_RETRY_MS = 30_000;
 
 export class SyncStore {
-  private snapshot: Snapshot = { program: null, log: { sessions: [], setLogs: [], runs: [] }, pending: 0, ready: false };
+  private snapshot: Snapshot = { program: null, log: { sessions: [], setLogs: [], runs: [], blockStartDate: "" }, pending: 0, ready: false };
   // Treated as immutable: always replaced, never mutated, so a value handed to
   // IndexedDB can't change under it.
   private outbox: Op[] = [];

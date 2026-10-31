@@ -4,6 +4,7 @@ import { createContext, use, useEffect, useState, useSyncExternalStore, type Rea
 import { idbKv } from "@/lib/idb-kv";
 import { SyncStore, type Snapshot } from "@/lib/sync";
 import { localIsoDate } from "@/lib/today";
+import { currentUserId } from "@/lib/user-cookie";
 import type { Op } from "@/lib/types";
 
 type Data = Snapshot & {
@@ -15,7 +16,8 @@ const DataContext = createContext<Data | null>(null);
 
 function createStore() {
   return new SyncStore({
-    kv: idbKv(),
+    // One offline cache per user, so a shared phone never mixes their data.
+    kv: idbKv(() => `training-tracker-${currentUserId()}`),
     fetch: (url, init) => fetch(url, init),
     schedule: (fn, ms) => setTimeout(fn, ms),
     today: () => localIsoDate(new Date()),
@@ -28,6 +30,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
   useEffect(() => {
+    if (!currentUserId()) {
+      window.location.replace("/login");
+      return;
+    }
     void store.start();
     const onVisible = () => document.visibilityState === "visible" && store.sync();
     window.addEventListener("online", store.sync);

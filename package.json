@@ -11,7 +11,7 @@
     "db:start": "supabase start -x realtime,storage-api,imgproxy,edge-runtime,logflare,vector,mailpit,supavisor",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts && oxfmt src/lib/database.types.ts"
+    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts && npx --yes prettier --write --print-width 160 src/lib/database.types.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

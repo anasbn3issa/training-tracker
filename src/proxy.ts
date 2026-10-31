@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { AUTH_COOKIE, authEnv, isValidToken } from "@/lib/auth";
+import { AUTH_COOKIE, authEnv, userFromToken } from "@/lib/auth";
 
 export function proxy(request: NextRequest) {
-  if (isValidToken(request.cookies.get(AUTH_COOKIE)?.value, authEnv())) return NextResponse.next();
+  if (userFromToken(request.cookies.get(AUTH_COOKIE)?.value, authEnv())) return NextResponse.next();
 
   if (request.nextUrl.pathname.startsWith("/api/")) {
     return Response.json({ error: "unauthorized" }, { status: 401 });

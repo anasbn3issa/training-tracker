@@ -1,5 +1,7 @@
 // Double progression + 6-week block modifiers. Pure functions, no I/O.
 
+import { addDays } from "./today";
+
 export type LoggedSet = { weight_kg: number | null; reps: number };
 
 export type Prescription = { base_sets: number; rep_low: number; rep_high: number; increment_kg: number };
@@ -77,6 +79,12 @@ const dayNumber = (isoDate: string) => {
   const [y, m, d] = isoDate.split("-").map(Number);
   return Date.UTC(y, m - 1, d) / 86_400_000;
 };
+
+/** The block start that makes `today` fall in `week`, keeping the start's weekday. */
+export function shiftBlockStart(blockStartDate: string, today: string, week: number): string {
+  const delta = week - blockWeek(blockStartDate, today);
+  return addDays(blockStartDate, -7 * delta);
+}
 
 /** Week 1-6 of the block containing `date`; blocks repeat every 6 weeks. */
 export function blockWeek(blockStartDate: string, date: string): number {

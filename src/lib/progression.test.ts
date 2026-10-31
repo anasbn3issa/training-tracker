@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockWeek, findLastSets, suggest, type LoggedSet, type Prescription } from "./progression";
+import { blockWeek, findLastSets, shiftBlockStart, suggest, type LoggedSet, type Prescription } from "./progression";
 
 // 4 x 8-10, like Incline DB press.
 const incline: Prescription = { base_sets: 4, rep_low: 8, rep_high: 10, increment_kg: 2.5 };
@@ -188,5 +188,23 @@ describe("blockWeek", () => {
 
   it("dates before the block start still land in 1-6", () => {
     expect(blockWeek(start, "2026-09-21")).toBe(6);
+  });
+});
+
+describe("shiftBlockStart", () => {
+  it("moves the block start so that today falls in the chosen week", () => {
+    // Block from 28 Sep: Sat 31 Oct is week 5. Saying "this is week 6" moves the start to 21 Sep.
+    expect(shiftBlockStart("2026-09-28", "2026-10-31", 6)).toBe("2026-09-21");
+    expect(blockWeek("2026-09-21", "2026-10-31")).toBe(6);
+  });
+
+  it("works backwards and keeps the weekday of the start", () => {
+    expect(shiftBlockStart("2026-09-21", "2026-10-31", 5)).toBe("2026-09-28");
+  });
+
+  it("jumping to week 3 next Monday continues 3, 4, 5... afterwards", () => {
+    const start = shiftBlockStart("2026-09-21", "2026-11-02", 3);
+    expect(blockWeek(start, "2026-11-02")).toBe(3);
+    expect(blockWeek(start, "2026-11-09")).toBe(4);
   });
 });

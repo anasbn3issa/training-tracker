@@ -5,9 +5,11 @@ import { useState } from "react";
 import { useData } from "@/components/data-provider";
 import { MinusIcon, PlusIcon } from "@/components/icons";
 import { DayBadge, GhostButton, IconButton, Loading, PrimaryButton, RunBadge, SessionBadge, card } from "@/components/ui";
-import { blockWeek, effortCue, setsForWeek } from "@/lib/progression";
+import { blockWeek, effortCue, setsForWeek, shiftBlockStart } from "@/lib/progression";
 import { findInProgress, isoWeekday, localIsoDate, runKmLast7Days } from "@/lib/today";
 import type { ProgramDay } from "@/lib/types";
+import { currentUserId } from "@/lib/user-cookie";
+import { userName } from "@/lib/users";
 import { uuid } from "@/lib/uuid";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -18,7 +20,6 @@ const formatDay = (iso: string) =>
 export default function TodayPage() {
   const { program, log, ready, pending, apply } = useData();
   const router = useRouter();
-  const [weekOverride, setWeekOverride] = useState<number | null>(null);
   const [pickOtherDay, setPickOtherDay] = useState(false);
   const [customTitle, setCustomTitle] = useState<string | null>(null); // non-null while naming a custom workout
 
@@ -27,7 +28,7 @@ export default function TodayPage() {
   const today = localIsoDate(new Date());
   const scheduled = program.days.find((d) => d.weekday === isoWeekday(today)) ?? null;
   const inProgress = findInProgress(log.sessions, today);
-  const week = inProgress?.block_week ?? weekOverride ?? blockWeek(program.blockStartDate, today);
+  const week = inProgress?.block_week ?? blockWeek(log.blockStartDate, today);
   const shownDay = program.days.find((d) => d.code === inProgress?.day_code) ?? scheduled;
 
   const exercises = program.prescriptions
@@ -45,20 +46,23 @@ export default function TodayPage() {
     // Next keeps this page mounted; reset the picker for when we come back.
     setPickOtherDay(false);
     setCustomTitle(null);
-    setWeekOverride(null);
     router.push("/session");
   }
   const start = (day: ProgramDay) => startSession({ day_code: day.code, title: null });
   const startCustom = (title: string) => startSession({ day_code: null, title: title.trim() });
 
-  const changeWeek = (delta: number) => setWeekOverride(Math.min(6, Math.max(1, week + delta)));
+  // Saved: shifts this user's block start so the app remembers the week from now on.
+  const changeWeek = (delta: number) =>
+    apply([{ kind: "set_block_start", date: shiftBlockStart(log.blockStartDate, today, Math.min(6, Math.max(1, week + delta))) }]);
   const setsLogged = inProgress ? log.setLogs.filter((s) => s.session_id === inProgress.id).length : 0;
   const showPicker = !inProgress && (!scheduled || pickOtherDay);
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-4">
       <header>
-        <p className="text-[15px] text-fg-2">{formatDay(today)}</p>
+        <p className="text-[15px] text-fg-2">
+          {formatDay(today)} · {userName(currentUserId() ?? "")}
+        </p>
         <div className="mt-1.5 flex items-center justify-between">
           <h1 className="text-[40px] leading-tight font-extrabold tracking-tight">
             Week <span className="tabular-nums">{week}</span>

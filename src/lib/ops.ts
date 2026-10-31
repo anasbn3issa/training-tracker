@@ -5,6 +5,7 @@ const upsert = <T extends { id: string }>(rows: T[], row: T) => [...rows.filter(
 /** Applies ops in order and returns a new state. Mirrors what the server does. */
 export function applyOps(state: LogState, ops: Op[]): LogState {
   return ops.reduce<LogState>((s, op) => {
+    if (op.kind === "set_block_start") return { ...s, blockStartDate: op.date };
     if (op.kind === "delete") {
       switch (op.table) {
         case "sessions":

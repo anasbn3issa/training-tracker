@@ -2,15 +2,15 @@ import type { Kv } from "./sync";
 
 // Minimal key-value store on IndexedDB: one database, one object store.
 
-const DB_NAME = "training-tracker";
 const STORE = "kv";
 
-export function idbKv(): Kv {
+/** `dbName` is read on first use (client only), e.g. one database per user. */
+export function idbKv(dbName: () => string): Kv {
   let db: Promise<IDBDatabase> | null = null;
 
   const open = () =>
     (db ??= new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1);
+      const req = indexedDB.open(dbName(), 1);
       req.onupgradeneeded = () => req.result.createObjectStore(STORE);
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);

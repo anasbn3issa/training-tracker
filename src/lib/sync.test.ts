@@ -3,7 +3,8 @@ import { applyOps } from "./ops";
 import { SyncStore, type Kv, type KvSchema } from "./sync";
 import type { LogState, Op, Program, Run, Session, SetLog } from "./types";
 
-const program: Program = { days: [], prescriptions: [], exercises: [], blockStartDate: "2026-09-28" };
+const program: Program = { days: [], prescriptions: [], exercises: [] };
+const START = "2026-09-21";
 const TODAY = "2026-10-26";
 
 const session: Session = { id: "s1", day_code: "A", date: TODAY, block_week: 5, notes: null, title: null, completed_at: null };
@@ -42,7 +43,7 @@ type FakeServer = {
 };
 
 /** A fake /api backed by applyOps, which can go offline, fail, or reject specific ops. */
-function fakeServer(initial: LogState = { sessions: [], setLogs: [], runs: [] }): FakeServer {
+function fakeServer(initial: LogState = { sessions: [], setLogs: [], runs: [], blockStartDate: START }): FakeServer {
   const server: FakeServer = {
     state: initial,
     mode: "up",
@@ -154,6 +155,18 @@ describe("SyncStore: writes", () => {
   });
 });
 
+describe("SyncStore: block week", () => {
+  it("a week change made offline is kept locally and synced later", async () => {
+    const { store, server, runRetries } = setup();
+    server.mode = "down";
+    store.apply([{ kind: "set_block_start", date: "2026-09-14" }]);
+    expect(store.getSnapshot().log.blockStartDate).toBe("2026-09-14");
+    server.mode = "up";
+    await runRetries();
+    expect(server.state.blockStartDate).toBe("2026-09-14");
+  });
+});
+
 describe("SyncStore: persistence and reload", () => {
   it("a reopened app shows logged sets and still has the unsent queue, with no network", async () => {
     const kv = memoryKv();
@@ -190,10 +203,10 @@ describe("SyncStore: pull and reconcile", () => {
   it("merges server state with writes that have not synced yet", async () => {
     const kv = memoryKv();
     kv.data.program = program;
-    kv.data.log = { sessions: [session], setLogs: [set("x")], runs: [] };
+    kv.data.log = { sessions: [session], setLogs: [set("x")], runs: [], blockStartDate: START };
     kv.data.outbox = [upsertSet("x")];
     const run: Run = { id: "r1", date: TODAY, kind: "easy", distance_km: 5, duration_sec: 1500, effort: null, notes: null };
-    const server = fakeServer({ sessions: [session], setLogs: [], runs: [run] });
+    const server = fakeServer({ sessions: [session], setLogs: [], runs: [run], blockStartDate: START });
     server.syncDown = true; // the pull works, the queued set can't be sent yet
     const { store } = setup(server, kv);
 
@@ -205,7 +218,7 @@ describe("SyncStore: pull and reconcile", () => {
   });
 
   it("a set logged while a pull is in flight is not lost", async () => {
-    const { store, server } = setup(fakeServer({ sessions: [session], setLogs: [], runs: [] }));
+    const { store, server } = setup(fakeServer({ sessions: [session], setLogs: [], runs: [], blockStartDate: START }));
     let release = () => {};
     server.stateGate = new Promise((r) => (release = r));
     const started = store.start();
@@ -220,7 +233,7 @@ describe("SyncStore: pull and reconcile", () => {
 
   it("closes sessions left open on an earlier day after loading", async () => {
     const old: Session = { ...session, id: "old", date: "2026-10-21" };
-    const { store, server } = setup(fakeServer({ sessions: [old], setLogs: [{ ...set("y"), session_id: "old", done_at: "2026-10-21T19:00:00Z" }], runs: [] }));
+    const { store, server } = setup(fakeServer({ sessions: [old], setLogs: [{ ...set("y"), session_id: "old", done_at: "2026-10-21T19:00:00Z" }], runs: [], blockStartDate: START }));
     await store.start();
     await store.idle();
     expect(server.state.sessions[0].completed_at).toBe("2026-10-21T19:00:00Z");

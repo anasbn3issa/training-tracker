@@ -12,7 +12,7 @@ npm install
 npm run db:start        # local Supabase in Docker: applies migrations + seed on first start
 cp .env.example .env.local
 npx supabase status -o env   # copy API_URL -> SUPABASE_URL, SECRET_KEY -> SUPABASE_SECRET_KEY
-# set APP_PASSWORD and AUTH_SECRET in .env.local
+# set AUTH_SECRET and PASSWORD_ANAS / PASSWORD_ATEF in .env.local
 npm run dev
 ```
 
@@ -24,8 +24,9 @@ Supabase Studio (local DB browser) runs at http://127.0.0.1:54323.
 | --------------------- | ------------------------------------------------------------------ |
 | `SUPABASE_URL`        | Supabase API URL                                                   |
 | `SUPABASE_SECRET_KEY` | Supabase secret (service-role) key. Server-side only, bypasses RLS |
-| `APP_PASSWORD`        | The single password to enter the app. Use a long one in production |
-| `AUTH_SECRET`         | Signs the login cookie (`openssl rand -base64 32`). Rotating it logs every device out |
+| `PASSWORD_ANAS`       | Anas's password. One `PASSWORD_<ID>` per user (see `src/lib/users.ts`) |
+| `PASSWORD_ATEF`       | Atef's password |
+| `AUTH_SECRET`         | Signs the login cookies (`openssl rand -base64 32`). Rotating it logs every device out |
 
 The browser never talks to Supabase directly: all reads/writes go through `/api/*` route handlers.
 RLS is enabled on every table with no policies, so the public keys can access nothing.
@@ -45,11 +46,12 @@ psql "$DATABASE_URL" -f supabase/seed.sql
 `npm run db:reset` rebuilds the **local** database from scratch (wipes logged data).
 After a schema change, regenerate the TypeScript types with `npm run db:types`.
 
-To start a new training block, set its first Monday:
+## Users
 
-```sql
-update settings set block_start_date = 'YYYY-MM-DD';
-```
+Each user logs in with their name + own password and only sees their own sessions, sets and runs;
+the program is shared. Each user has their own block start (`users.block_start_date`), changed by
+the −/+ on Today (saved). To add a user: insert a row in `users`, add them to `src/lib/users.ts`,
+and set `PASSWORD_<ID>` in Vercel.
 
 ## Scripts
 
