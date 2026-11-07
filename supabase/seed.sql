@@ -21,7 +21,8 @@ insert into exercises (id, name, load_type, increment_kg) values
   ('pull-ups',                   'Pull-ups',                         'bodyweight_plus',   2.5),
   ('chest-supported-row',        'Chest-supported row',              'machine',           2.5),
   ('lat-pulldown',               'Lat pulldown',                     'machine',           2.5),
-  ('single-arm-db-row',          'Single-arm DB row',                'dumbbell_per_hand', 2.5),
+  ('single-arm-db-row',          'Single-arm DB row',                'dumbbell_per_hand', 2.5), -- no longer in the program, kept for history
+  ('back-extension',             'Back extension (hyperextension)',  'bodyweight_plus',   2.5),
   ('rear-delt-fly',              'Rear delt fly',                    'machine',           2.5),
   ('incline-db-curl',            'Incline DB curl',                  'dumbbell_per_hand', 1.0),
   ('hammer-curl',                'Hammer curl',                      'dumbbell_per_hand', 1.0),
@@ -67,7 +68,7 @@ insert into program_exercises (day_code, position, exercise_id, base_sets, rep_l
   ('C', 1, 'pull-ups',                   4,  6, 10, null),
   ('C', 2, 'chest-supported-row',        4, 10, 12, null),
   ('C', 3, 'lat-pulldown',               3, 10, 12, null),
-  ('C', 4, 'single-arm-db-row',          3, 10, 12, null),
+  ('C', 4, 'back-extension',             3, 12, 15, null),
   ('C', 5, 'rear-delt-fly',              3, 15, 20, null),
   ('C', 6, 'incline-db-curl',            3, 10, 12, null),
   ('C', 7, 'hammer-curl',                3, 10, 12, null),
