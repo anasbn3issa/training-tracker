@@ -3,18 +3,22 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BlockHeader } from "@/components/block/block-header";
 import { useData } from "@/components/data-provider";
-import { MinusIcon, PlusIcon, SlidersIcon } from "@/components/icons";
-import { DayBadge, GhostButton, IconButton, Loading, PrimaryButton, RunBadge, SessionBadge, card } from "@/components/ui";
-import { activeDays, dayPrescriptions, formatWeekdays, scheduledDay, weekdaysOf } from "@/lib/program";
-import { blockWeek, effortCue, setsForWeek, shiftBlockStart } from "@/lib/progression";
+import { ChevronRightIcon } from "@/components/icons";
+import { TodayExercises } from "@/components/today-exercises";
+import { DayCode, GhostButton, Loading, OutlineButton, PrimaryButton, RunBadge, SectionHead, SessionBadge } from "@/components/ui";
+import { activeDays, scheduledDay } from "@/lib/program";
+import { blockWeek, shiftBlockStart } from "@/lib/progression";
 import { findInProgress, isoWeekday, localIsoDate, runKmLast7Days } from "@/lib/today";
 import type { ProgramDay } from "@/lib/types";
 import { currentUserName } from "@/lib/user-cookie";
 import { uuid } from "@/lib/uuid";
 
 const formatDay = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
+const rowButton = "flex min-h-14 w-full items-center gap-3 border-b border-line py-2 text-left active:bg-surface";
 
 export default function TodayPage() {
   const { program, log, ready, pending, apply } = useData();
@@ -29,11 +33,6 @@ export default function TodayPage() {
   const inProgress = findInProgress(log.sessions, today);
   const week = inProgress?.block_week ?? blockWeek(log.blockStartDate, today);
   const shownDay = program.days.find((d) => d.id === inProgress?.day_id) ?? scheduled;
-
-  const exercises = dayPrescriptions(program, shownDay?.id ?? null).map((p) => ({
-    ...p,
-    name: program.exercises.find((e) => e.id === p.exercise_id)?.name ?? p.exercise_id,
-  }));
 
   function startSession(target: { day_id: string; title: null } | { day_id: null; title: string }) {
     apply([
@@ -58,105 +57,52 @@ export default function TodayPage() {
   const showPicker = !inProgress && (!scheduled || pickOtherDay);
 
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-4">
-      <header>
+    <main className="flex flex-1 flex-col gap-5 px-4 pt-3 pb-4">
+      <header className="flex flex-col">
         <div className="flex items-center justify-between">
-          <p className="text-[15px] text-fg-2">
+          <p className="text-[15px] font-medium text-fg-2">
             {formatDay(today)} · {currentUserName()}
           </p>
-          <Link href="/program" aria-label="Your program" className="-my-2 -mr-2 grid size-11 place-items-center rounded-xl text-fg-2 active:bg-surface">
-            <SlidersIcon className="size-[22px]" />
+          <Link href="/program" className="type-label -mr-2 flex h-12 items-center px-2 text-[13px] text-fg">
+            Program
           </Link>
         </div>
-        <div className="mt-1.5 flex items-center justify-between">
-          <h1 className="text-[40px] leading-tight font-extrabold tracking-tight">
-            Week <span className="tabular-nums">{week}</span>
-            <span className="ml-1.5 text-lg font-semibold tracking-normal text-fg-3">of 6</span>
-          </h1>
-          {!inProgress && (
-            <div className="flex gap-2">
-              <IconButton aria-label="Previous week" onClick={() => changeWeek(-1)} disabled={week === 1}>
-                <MinusIcon />
-              </IconButton>
-              <IconButton aria-label="Next week" onClick={() => changeWeek(1)} disabled={week === 6}>
-                <PlusIcon />
-              </IconButton>
-            </div>
-          )}
-        </div>
-        <div className="mt-3.5 flex gap-1.5" aria-hidden>
-          {[1, 2, 3, 4, 5, 6].map((w) => (
-            <i key={w} className={`h-1.5 flex-1 rounded-full ${w < week ? "bg-accent-dim" : w === week ? "bg-accent" : "bg-surface-2"}`} />
-          ))}
-        </div>
-        <p className="mt-2.5 flex items-center gap-2 text-[15px] font-semibold text-accent">
-          <span className="size-2 rounded-full bg-accent" />
-          {effortCue(week)}
-        </p>
+        <BlockHeader week={week} onChangeWeek={inProgress ? undefined : changeWeek} />
       </header>
 
       {inProgress?.day_id === null ? (
-        <section className={`${card} flex items-center gap-3 p-4`}>
-          <SessionBadge dayCode={null} />
-          <div>
-            <h2 className="text-xl font-bold">{inProgress.title}</h2>
-            <p className="text-[13px] text-fg-3">Custom workout · in progress</p>
-          </div>
+        <section>
+          <SectionHead title={inProgress.title} meta="Custom · in progress" />
         </section>
       ) : shownDay ? (
-        <section className={`${card} p-4`}>
-          <div className="mb-2 flex items-center gap-3">
-            <DayBadge code={shownDay.code} />
-            <div>
-              <h2 className="text-xl font-bold">{shownDay.name}</h2>
-              <p className="text-[13px] text-fg-3">
-                {formatWeekdays(weekdaysOf(program, shownDay.id))} · {exercises.length} exercises
-              </p>
-            </div>
-          </div>
-          <ul>
-            {exercises.map((e) => (
-              <li key={e.id} className="flex justify-between gap-4 border-t border-line py-2">
-                <span>{e.name}</span>
-                <span className="shrink-0 font-medium text-fg-2 tabular-nums">
-                  {setsForWeek(e.base_sets, week)} × {e.rep_low}–{e.rep_high}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <TodayExercises program={program} log={log} day={shownDay} week={week} />
       ) : (
-        <section className={`${card} p-4`}>
-          <h2 className="text-xl font-bold">Rest day</h2>
-          <p className="mt-1 text-fg-2">Nothing scheduled. Pick a day below to train anyway.</p>
+        <section>
+          <SectionHead title="Rest day" />
+          <p className="mt-2 text-fg-2">Nothing scheduled. Pick a day below to train anyway.</p>
         </section>
       )}
 
-      <section className={`${card} flex items-center gap-3.5 px-4 py-3.5`}>
+      <section aria-label="Running" className="flex items-center gap-3 border-y border-line py-3">
         <RunBadge />
-        <div>
-          <p className="text-[26px] leading-tight font-extrabold tabular-nums">
-            {runKmLast7Days(log.runs, today)}
-            <span className="ml-1 text-[15px] font-semibold text-fg-2">km</span>
-          </p>
-          <p className="text-[13px] text-fg-2">Running · last 7 days</p>
-        </div>
+        <p className="flex items-baseline gap-1.5">
+          <span className="type-number text-[30px] text-run">{runKmLast7Days(log.runs, today)}</span>
+          <span className="text-[15px] text-fg-2">km run · last 7 days</span>
+        </p>
       </section>
 
       {pending > 0 && (
-        <p className="text-sm text-fg-3">
+        <p className="text-sm text-fg-2">
           Saved on this phone · {pending} change{pending > 1 ? "s" : ""} waiting to sync
         </p>
       )}
 
-      {/* Sticks above the tab bar so the main action stays in thumb reach on long days. */}
-      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] -mx-4 mt-auto flex flex-col gap-2 bg-linear-to-t from-bg from-75% to-transparent px-4 pt-6">
+      {/* Sticks above the tab bar (56px + 3px rule) so the main action stays in thumb reach on long days. */}
+      <div className="sticky bottom-[calc(59px+env(safe-area-inset-bottom))] -mx-4 mt-auto flex flex-col gap-2 bg-bg px-4 pt-3 pb-3">
         {inProgress ? (
-          <PrimaryButton onClick={() => router.push("/session")} className="min-h-[72px] flex-col gap-0">
+          <PrimaryButton tall stacked onClick={() => router.push("/session")}>
             Resume workout
-            <span className="text-sm font-semibold opacity-70">
-              {inProgress.day_id === null ? inProgress.title : `${setsLogged} sets logged`}
-            </span>
+            <span className="type-label text-[13px]">{inProgress.day_id === null ? inProgress.title : `${setsLogged} sets logged`}</span>
           </PrimaryButton>
         ) : customTitle !== null ? (
           <form
@@ -166,7 +112,7 @@ export default function TodayPage() {
             }}
             className="flex flex-col gap-2"
           >
-            <label htmlFor="custom-title" className="text-sm font-medium text-fg-2">
+            <label htmlFor="custom-title" className="type-label text-xs text-fg-2">
               Custom workout title
             </label>
             <input
@@ -175,8 +121,8 @@ export default function TodayPage() {
               maxLength={80}
               value={customTitle}
               onChange={(e) => setCustomTitle(e.target.value)}
-              placeholder="e.g. Arms, Hyrox class"
-              className="h-14 rounded-2xl border border-line bg-surface px-4 text-lg outline-none placeholder:text-fg-3 focus:border-accent"
+              placeholder="Arms, Hyrox class"
+              className="h-14 border-2 border-line bg-bg px-4 text-lg outline-none placeholder:text-fg-3 focus:border-accent"
             />
             <PrimaryButton type="submit" disabled={!customTitle.trim()}>
               Start custom workout
@@ -187,32 +133,32 @@ export default function TodayPage() {
           </form>
         ) : showPicker ? (
           <>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="type-label text-xs text-fg-2">Pick a session</p>
+            <ul>
               {activeDays(program).map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => start(d)}
-                  className={`${card} flex min-h-[72px] items-center gap-3 p-3 text-left active:bg-surface-2`}
-                >
-                  <DayBadge code={d.code} />
-                  <span className="text-[15px] leading-snug font-semibold">{d.name}</span>
-                </button>
+                <li key={d.id}>
+                  <button onClick={() => start(d)} className={rowButton}>
+                    <DayCode code={d.code} />
+                    <span className="type-name flex-1 text-[17px]">{d.name}</span>
+                    <ChevronRightIcon className="size-5 text-fg-2" />
+                  </button>
+                </li>
               ))}
-            </div>
-            <button
-              onClick={() => setCustomTitle("")}
-              className={`${card} flex min-h-[60px] items-center gap-3 p-3 text-left active:bg-surface-2`}
-            >
-              <SessionBadge dayCode={null} />
-              <span className="text-[15px] font-semibold">Custom workout</span>
-            </button>
+              <li>
+                <button onClick={() => setCustomTitle("")} className={rowButton}>
+                  <SessionBadge dayCode={null} />
+                  <span className="type-name flex-1 text-[17px]">Custom workout</span>
+                  <ChevronRightIcon className="size-5 text-fg-2" />
+                </button>
+              </li>
+            </ul>
             {scheduled && <GhostButton onClick={() => setPickOtherDay(false)}>Back</GhostButton>}
           </>
         ) : (
           scheduled && (
             <>
-              <GhostButton onClick={() => setPickOtherDay(true)}>Start another day</GhostButton>
-              <PrimaryButton onClick={() => start(scheduled)}>Start workout</PrimaryButton>
+              <OutlineButton onClick={() => setPickOtherDay(true)}>Another day</OutlineButton>
+              <PrimaryButton onClick={() => start(scheduled)}>Start {scheduled.name}</PrimaryButton>
             </>
           )
         )}

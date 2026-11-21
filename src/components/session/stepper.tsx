@@ -22,7 +22,7 @@ function StepButton({ direction, onPress, onLongPress }: { direction: 1 | -1; on
     <button
       type="button"
       aria-label={direction === 1 ? "Increase" : "Decrease"}
-      className="grid h-16 w-[76px] shrink-0 touch-manipulation place-items-center rounded-2xl bg-surface-2 select-none active:bg-line"
+      className="grid h-16 w-[72px] shrink-0 touch-manipulation place-items-center border-2 border-fg select-none active:bg-surface"
       onContextMenu={(e) => e.preventDefault()}
       onPointerDown={() => {
         longPressed.current = false;
@@ -61,7 +61,7 @@ export function Stepper({
     <div className="flex items-center gap-2.5">
       <StepButton direction={-1} onPress={() => onStep(-1)} onLongPress={fineStep && (() => fineStep(-1))} />
       <div className="flex min-w-0 flex-1 flex-col items-center">
-        <span className="mb-0.5 text-xs font-semibold tracking-[0.08em] text-fg-3 uppercase">{label}</span>
+        <span className="type-label mb-1 text-xs text-fg-2">{label}</span>
         {children}
       </div>
       <StepButton direction={1} onPress={() => onStep(1)} onLongPress={fineStep && (() => fineStep(1))} />
@@ -69,7 +69,7 @@ export function Stepper({
   );
 }
 
-export const stepperValue = "text-[46px] leading-none font-extrabold tracking-tight tabular-nums";
+export const stepperValue = "type-number text-[46px]";
 
 /** Weight value: also a numeric field, so a first working weight can be typed in. */
 export function WeightField({ value, onChange, placeholder }: { value: number | null; onChange: (kg: number | null) => void; placeholder: string }) {
@@ -93,7 +93,7 @@ export function WeightField({ value, onChange, placeholder }: { value: number | 
         const kg = Number(raw);
         if (Number.isFinite(kg) && kg >= 0) onChange(kg);
       }}
-      className={`${stepperValue} w-full bg-transparent text-center outline-none placeholder:text-base placeholder:font-medium placeholder:tracking-normal placeholder:text-fg-3`}
+      className={`${stepperValue} w-full bg-transparent text-center outline-none placeholder:font-sans placeholder:text-base placeholder:font-medium placeholder:text-fg-3`}
     />
   );
 }

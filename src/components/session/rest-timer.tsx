@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { card, eyebrow } from "../ui";
+import { useEffect, useState, type ReactNode } from "react";
 
-/** Countdown to `endsAt` (epoch ms). Derived from the clock, so it stays right after the phone sleeps. */
-export function RestTimer({ endsAt, totalSeconds }: { endsAt: number; totalSeconds: number }) {
+/**
+ * Countdown to `endsAt` (epoch ms). Derived from the clock, so it stays right after the phone sleeps.
+ * `children` sits in the band's top row (Undo).
+ */
+export function RestTimer({ endsAt, totalSeconds, children }: { endsAt: number; totalSeconds: number; children?: ReactNode }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -16,12 +18,18 @@ export function RestTimer({ endsAt, totalSeconds }: { endsAt: number; totalSecon
   const over = left === 0;
 
   return (
-    <section className={`${card} relative flex-1 overflow-hidden px-4 py-3 ${over ? "border-accent bg-accent-soft" : ""}`}>
-      <p className={over ? `${eyebrow} text-accent` : eyebrow}>{over ? "Rest over" : "Rest"}</p>
-      <p className={`text-[40px] leading-tight font-extrabold tracking-tight tabular-nums ${over ? "text-accent" : ""}`}>
+    <section aria-label="Rest timer" className={`relative overflow-hidden border-2 px-3 pt-1 pb-3 ${over ? "border-fg bg-fg text-bg" : "border-fg"}`}>
+      <div className="flex min-h-12 items-center justify-between">
+        <p className="type-label text-xs">{over ? "Rest over" : "Rest"}</p>
+        {children}
+      </div>
+      <p role="timer" className="type-number text-[54px]">
         {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
       </p>
-      <div className="absolute bottom-0 left-0 h-1 bg-accent transition-[width] duration-300" style={{ width: `${(left / totalSeconds) * 100}%` }} />
+      <div
+        className="absolute bottom-0 left-0 h-1.5 bg-accent motion-safe:transition-[width] motion-safe:duration-300"
+        style={{ width: `${(left / totalSeconds) * 100}%` }}
+      />
     </section>
   );
 }

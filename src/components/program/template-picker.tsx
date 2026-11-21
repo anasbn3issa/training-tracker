@@ -1,51 +1,55 @@
 "use client";
 
-import { dayPrescriptions, orderDays } from "@/lib/program";
-import type { Exercise, Template } from "@/lib/types";
-import { DayBadge, card } from "../ui";
+import { weekFromSchedule } from "@/lib/program";
+import type { Template } from "@/lib/types";
+import { programBlurb } from "./program-copy";
+import { WeekStrip } from "./week-strip";
 
-/** One card per program to choose: its days and their exercises, so the choice is informed. */
+/** One row per program: days a week first, then what makes it different and its default week. Fewest days first. */
 export function TemplatePicker({
   templates,
-  exercises,
   usedBefore,
   onPick,
 }: {
   templates: Template[];
-  exercises: Exercise[];
-  /** Templates the user had before: their card shows the user's own version. */
+  /** Templates the user had before: their row shows the user's own version. */
   usedBefore: string[];
   onPick: (template: Template) => void;
 }) {
-  const name = (id: string) => exercises.find((e) => e.id === id)?.name ?? id;
+  const sorted = [...templates].sort((a, b) => a.schedule.length - b.schedule.length);
   return (
-    <ul className="flex flex-col gap-3">
-      {templates.map((t) => (
-        <li key={t.id}>
-          <button onClick={() => onPick(t)} className={`${card} flex w-full flex-col gap-3 p-4 text-left active:bg-surface-2`}>
-            <span className="flex items-baseline justify-between gap-3">
-              <span className="text-xl font-bold">{t.name}</span>
-              <span className="shrink-0 text-[13px] text-fg-3">
-                {usedBefore.includes(t.id) ? "Your version · " : ""}
-                {t.schedule.length}× a week
-              </span>
-            </span>
-            {orderDays(t.days, t.schedule).map((d) => (
-              <span key={d.id} className="flex items-start gap-3">
-                <DayBadge code={d.code} />
+    <ul className="flex flex-col">
+      {sorted.map((t) => {
+        const blurb = programBlurb(t.name);
+        const days = t.schedule.length;
+        return (
+          <li key={t.id}>
+            <button
+              onClick={() => onPick(t)}
+              aria-label={`${t.name}, ${days} days a week${usedBefore.includes(t.id) ? ", your version" : ""}`}
+              aria-describedby={blurb ? `blurb-${t.id}` : undefined}
+              className="flex w-full flex-col gap-2 border-t-[3px] border-fg pt-2.5 pb-4 text-left active:bg-surface"
+            >
+              <span className="flex w-full items-start justify-between gap-3">
                 <span className="min-w-0">
-                  <span className="block font-semibold">{d.name}</span>
-                  <span className="block text-[13px] leading-snug text-fg-3">
-                    {dayPrescriptions({ prescriptions: t.prescriptions }, d.id)
-                      .map((p) => name(p.exercise_id))
-                      .join(", ")}
-                  </span>
+                  <span className="type-display block text-[30px]">{t.name}</span>
+                  {usedBefore.includes(t.id) && <span className="type-label mt-1 block text-xs text-fg-2">Your version</span>}
+                  {blurb && (
+                    <span id={`blurb-${t.id}`} className="mt-1 block text-sm leading-snug text-fg-2">
+                      {blurb}
+                    </span>
+                  )}
+                </span>
+                <span className="flex shrink-0 flex-col items-center">
+                  <span className="type-display text-[44px] text-accent tabular-nums">{days}</span>
+                  <span className="type-label text-xs text-fg-2">days</span>
                 </span>
               </span>
-            ))}
-          </button>
-        </li>
-      ))}
+              <WeekStrip week={weekFromSchedule(t.schedule, t.days)} days={t.days} size="sm" />
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }

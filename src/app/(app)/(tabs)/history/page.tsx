@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/components/data-provider";
 import { ChevronDownIcon } from "@/components/icons";
-import { Loading, RunBadge, ScreenTitle, SessionBadge, card } from "@/components/ui";
+import { Loading, RunBadge, ScreenTitle, SessionBadge } from "@/components/ui";
 import { formatDuration, formatPace, historyItems, type HistoryItem } from "@/lib/history";
 import { formatSets } from "@/lib/session";
 
@@ -23,8 +23,8 @@ export default function HistoryPage() {
   return (
     <main className="flex flex-col gap-3 px-4 pt-5 pb-4">
       <ScreenTitle>History</ScreenTitle>
-      {items.length === 0 && <p className="text-fg-2">Nothing logged yet.</p>}
-      <ul className="flex flex-col gap-2.5">
+      {items.length === 0 && <p className="text-fg-2">Your workouts and runs show up here.</p>}
+      <ul className="border-t-[3px] border-fg">
         {items.map((item) =>
           item.kind === "session" ? (
             <SessionRow
@@ -35,14 +35,14 @@ export default function HistoryPage() {
               onDelete={() => apply([{ kind: "delete", table: "sessions", id: item.session.id }])}
             />
           ) : (
-            <li key={item.run.id} className={card}>
-              <button onClick={() => toggle(item.run.id)} aria-expanded={openId === item.run.id} className="flex min-h-16 w-full items-center gap-3 p-3.5 text-left">
+            <li key={item.run.id} className="border-b border-line">
+              <button onClick={() => toggle(item.run.id)} aria-expanded={openId === item.run.id} className="flex min-h-16 w-full items-center gap-3 py-3 text-left active:bg-surface">
                 <RunBadge />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[17px] font-bold tabular-nums">
+                  <span className="type-name block text-[17px] tabular-nums">
                     {item.run.distance_km} km · {formatDuration(item.run.duration_sec)}
                   </span>
-                  <span className="mt-0.5 block text-[13px] text-fg-3">
+                  <span className="mt-0.5 block text-[13px] text-fg-2">
                     {formatDate(item.date)} · {KIND_LABEL[item.run.kind]} ·{" "}
                     <span className="tabular-nums">{formatPace(item.run.distance_km, item.run.duration_sec)}</span>
                     {item.run.effort !== null && ` · effort ${item.run.effort}`}
@@ -51,7 +51,7 @@ export default function HistoryPage() {
                 <Chevron open={openId === item.run.id} />
               </button>
               {(item.run.notes || openId === item.run.id) && (
-                <div className="flex flex-col gap-2.5 pr-3.5 pb-3.5 pl-[66px]">
+                <div className="flex flex-col gap-2.5 pb-4 pl-[46px]">
                   {item.run.notes && <p className="text-[15px] text-fg-2">{item.run.notes}</p>}
                   {openId === item.run.id && (
                     <DeleteButton label="Delete run" onConfirm={() => apply([{ kind: "delete", table: "runs", id: item.run.id }])} />
@@ -80,26 +80,26 @@ function SessionRow({
   const setCount = item.exercises.reduce((n, e) => n + e.sets.length, 0);
   const custom = item.session.day_id === null;
   return (
-    <li className={card}>
-      <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 w-full items-center gap-3 p-3.5 text-left">
+    <li className="border-b border-line">
+      <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 w-full items-center gap-3 py-3 text-left active:bg-surface">
         <SessionBadge dayCode={item.dayCode} />
         <span className="min-w-0 flex-1">
-          <span className="block text-[17px] font-bold">{item.dayName}</span>
-          <span className="mt-0.5 block text-[13px] text-fg-3">
-            {formatDate(item.date)} · {custom ? "custom workout" : `week ${item.session.block_week} · ${setCount} sets`}
+          <span className="type-name block text-[17px]">{item.dayName}</span>
+          <span className="mt-0.5 block text-[13px] text-fg-2">
+            {formatDate(item.date)} · {custom ? "custom workout" : `week ${item.session.block_week} · ${setCount} set${setCount === 1 ? "" : "s"}`}
             {item.session.completed_at === null && <span className="text-accent"> · in progress</span>}
           </span>
         </span>
         <Chevron open={open} />
       </button>
       {open && (
-        <dl className="flex flex-col gap-2.5 pr-3.5 pb-3.5 pl-[66px]">
+        <dl className="flex flex-col gap-2.5 pb-4 pl-[46px]">
           {item.session.notes && <p className="text-[15px] whitespace-pre-line text-fg-2">{item.session.notes}</p>}
-          {!custom && item.exercises.length === 0 && <p className="text-fg-3">No sets logged.</p>}
+          {!custom && item.exercises.length === 0 && <p className="text-fg-2">No sets logged.</p>}
           {item.exercises.map((e) => (
             <div key={e.id}>
-              <dt className="text-[13px] text-fg-3">{e.name}</dt>
-              <dd className="mt-0.5 text-[15px] font-semibold tabular-nums">{formatSets(e.sets, e.loadType)}</dd>
+              <dt className="text-[13px] text-fg-2">{e.name}</dt>
+              <dd className="type-name mt-0.5 text-[15px] tabular-nums">{formatSets(e.sets, e.loadType)}</dd>
             </div>
           ))}
           <DeleteButton label="Delete workout" onConfirm={onDelete} />
@@ -110,7 +110,7 @@ function SessionRow({
 }
 
 function Chevron({ open }: { open: boolean }) {
-  return <ChevronDownIcon className={`size-5 shrink-0 text-fg-3 transition-transform ${open ? "rotate-180" : ""}`} />;
+  return <ChevronDownIcon className={`size-5 shrink-0 text-fg-2 motion-safe:transition-transform ${open ? "rotate-180" : ""}`} />;
 }
 
 const ARM_MS = 3000;
@@ -128,7 +128,7 @@ function DeleteButton({ label, onConfirm }: { label: string; onConfirm: () => vo
   return (
     <button
       onClick={() => (armed ? onConfirm() : setArmed(true))}
-      className={`mt-1 h-12 rounded-[14px] text-[15px] font-semibold ${armed ? "bg-danger text-white" : "border border-line text-danger active:bg-surface-2"}`}
+      className={`type-label mt-1 h-12 text-sm ${armed ? "bg-danger text-bg" : "border-2 border-danger text-danger active:bg-surface"}`}
     >
       {armed ? "Tap again to delete" : label}
     </button>

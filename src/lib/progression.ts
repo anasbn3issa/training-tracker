@@ -38,6 +38,15 @@ const roundKg = (kg: number) => Math.round(kg * 100) / 100;
 export const setsForWeek = (baseSets: number, week: number) => WEEKS[week].sets(baseSets);
 export const effortCue = (week: number) => WEEKS[week].cue;
 
+export type BlockPhase = "ramp" | "build" | "peak" | "deload";
+
+/** What a week of the block asks for: ramp (1–2), build (3–4), peak (5), deload (6). */
+export function blockPhase(week: number): BlockPhase {
+  if (week <= 2) return "ramp";
+  if (week <= 4) return "build";
+  return week === 5 ? "peak" : "deload";
+}
+
 export function suggest(rx: Prescription, week: number, lastSets: LoggedSet[]): Suggestion {
   const sets = setsForWeek(rx.base_sets, week);
 
@@ -78,6 +87,21 @@ export function findLastSets(sessions: SessionRef[], setLogs: SetRef[], dayId: s
     }
   }
   return [];
+}
+
+/**
+ * The suggestion for one exercise of a program day: its last sets on that day (see findLastSets)
+ * run through suggest with the exercise's increment. Shared by Today and the workout screen.
+ */
+export function suggestionFor(
+  log: { sessions: SessionRef[]; setLogs: SetRef[] },
+  dayId: string,
+  rx: Omit<Prescription, "increment_kg"> & { exercise_id: string },
+  incrementKg: number,
+  week: number,
+): Suggestion {
+  const last = findLastSets(log.sessions, log.setLogs, dayId, rx.exercise_id);
+  return suggest({ base_sets: rx.base_sets, rep_low: rx.rep_low, rep_high: rx.rep_high, increment_kg: incrementKg }, week, last);
 }
 
 const dayNumber = (isoDate: string) => {

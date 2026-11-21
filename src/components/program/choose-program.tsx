@@ -5,17 +5,19 @@ import { mondayOf, orderDays, planFromWeek, weekFromSchedule, yourVersion } from
 import { RELOAD_FAILED, chooseProgram, failureMessage, fetchTemplates } from "@/lib/program-api";
 import { localIsoDate } from "@/lib/today";
 import type { Template, Week } from "@/lib/types";
+import { useOnline } from "@/lib/use-online";
 import { useData } from "../data-provider";
-import { GhostButton, Loading, PrimaryButton, ScreenTitle } from "../ui";
+import { BackButton, GhostButton, Loading, OfflineNotice, OutlineButton, PrimaryButton, ScreenTitle, eyebrow } from "../ui";
 import { TemplatePicker } from "./template-picker";
 import { WeekEditor } from "./week-editor";
 
 /**
- * Pick a template, then set the week (pre-filled with the template's default), then save.
+ * Step 1: pick a template. Step 2: set the week (pre-filled with the template's default), then save.
  * Used on first login and to switch programs. History is never touched; the block restarts at week 1.
  */
 export function ChooseProgram({ switching, onDone, onCancel }: { switching: boolean; onDone: () => void; onCancel?: () => void }) {
   const { program, refresh } = useData();
+  const online = useOnline();
   const [templates, setTemplates] = useState<Template[] | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -60,20 +62,23 @@ export function ChooseProgram({ switching, onDone, onCancel }: { switching: bool
     return (
       <>
         <div>
-          <ScreenTitle>{switching ? "Change program" : "Choose your program"}</ScreenTitle>
-          <p className="mt-1 text-fg-2">You can change it, your week and its exercises later.</p>
+          <p className={eyebrow}>Step 1 of 2</p>
+          <ScreenTitle>{switching ? "Change program" : "Pick your split"}</ScreenTitle>
+          <p className="mt-2 text-fg-2">How many days can you train? Start there.</p>
         </div>
         {loadError ? (
           <div className="flex flex-col gap-2">
-            <p className="text-fg-2">{loadError}</p>
-            <GhostButton
+            <p role="alert" className="text-fg-2">
+              {loadError}
+            </p>
+            <OutlineButton
               onClick={() => {
                 setLoadError(null);
                 setAttempt((a) => a + 1);
               }}
             >
               Try again
-            </GhostButton>
+            </OutlineButton>
           </div>
         ) : templates === null || program === null ? (
           <Loading />
@@ -81,7 +86,6 @@ export function ChooseProgram({ switching, onDone, onCancel }: { switching: bool
           <TemplatePicker
             // Re-picking the current program would only reset the week and the block: edit those on the program page.
             templates={templates.filter((t) => t.id !== program.active?.template_id).map((t) => yourVersion(program, t))}
-            exercises={program.exercises}
             usedBefore={program.programs.map((p) => p.template_id).filter((id) => id !== null)}
             onPick={pick}
           />
@@ -94,22 +98,25 @@ export function ChooseProgram({ switching, onDone, onCancel }: { switching: bool
   const trainingDays = planFromWeek(week).length;
   return (
     <>
+      <BackButton onClick={() => setPicked(null)} disabled={saving}>
+        Programs
+      </BackButton>
       <div>
+        <p className={eyebrow}>Step 2 of 2 · {picked.name}</p>
         <ScreenTitle>Your week</ScreenTitle>
-        <p className="mt-1 text-fg-2">
-          {picked.name} · {trainingDays} session{trainingDays === 1 ? "" : "s"} a week
-        </p>
       </div>
+      {!online && <OfflineNotice />}
       <WeekEditor days={orderDays(picked.days, picked.schedule)} week={week} onChange={setWeek} />
-      {switching && <p className="text-[15px] text-fg-2">Your history stays. The 6-week block restarts at week 1.</p>}
-      {saveError && <p className="text-[15px] text-danger">{saveError}</p>}
+      {switching && <p className="text-[15px] text-fg-2">Your history and weights stay. The 6-week block restarts at week 1.</p>}
+      {saveError && (
+        <p role="alert" className="text-[15px] text-danger">
+          {saveError}
+        </p>
+      )}
       <div className="mt-auto flex flex-col gap-2">
-        <PrimaryButton onClick={save} disabled={saving || trainingDays === 0}>
+        <PrimaryButton onClick={save} disabled={saving || trainingDays === 0 || !online}>
           {saving ? "Saving…" : switching ? `Switch to ${picked.name}` : "Start training"}
         </PrimaryButton>
-        <GhostButton onClick={() => setPicked(null)} disabled={saving}>
-          Back
-        </GhostButton>
       </div>
     </>
   );

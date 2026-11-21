@@ -19,8 +19,8 @@ export default function OnboardingPage() {
 
   if (!ready || !program || hasProgram) return <Loading />;
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-      <p className="text-[15px] text-fg-2">Welcome, {currentUserName()}</p>
+    <main className="flex flex-1 flex-col gap-5 px-4 pt-5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <p className="type-label text-xs text-fg-2">Welcome, {currentUserName()}</p>
       <ChooseProgram switching={false} onDone={() => router.replace("/")} />
     </main>
   );

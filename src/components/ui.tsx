@@ -1,43 +1,82 @@
+import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { DumbbellIcon, RunIcon } from "./icons";
+import { ChevronLeftIcon, DumbbellIcon, RunIcon } from "./icons";
 
-export const card = "rounded-[18px] border border-line bg-surface";
-export const eyebrow = "text-xs font-semibold uppercase tracking-[0.08em] text-fg-3";
+export const eyebrow = "type-label text-xs text-fg-2";
 
+// `className` is for layout only (margins, alignment). Tailwind picks between two conflicting utilities by
+// their order in the CSS, not in the class string, so variants are props instead of className overrides.
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
 
-export function PrimaryButton({ className = "", ...props }: ButtonProps) {
+/** The one main action of a screen. `tall` for the workout screen, `stacked` for a label with a second line. */
+export function PrimaryButton({ className = "", tall = false, stacked = false, ...props }: ButtonProps & { tall?: boolean; stacked?: boolean }) {
   return (
     <button
-      className={`flex min-h-16 touch-manipulation items-center justify-center gap-2 rounded-[18px] bg-accent px-4 text-xl font-bold text-on-accent active:bg-accent-press disabled:bg-surface-2 disabled:text-fg-3 ${className}`}
+      className={`type-display flex ${tall ? "min-h-[72px]" : "min-h-16"} ${stacked ? "flex-col gap-0.5" : "gap-2"} touch-manipulation items-center justify-center bg-accent px-4 text-[28px] text-on-accent active:bg-accent-press disabled:bg-surface disabled:text-fg-3 ${className}`}
+      {...props}
+    />
+  );
+}
+
+/** Secondary actions: Change program, Another day. `compact` for a button inside a row (Swap). */
+export function OutlineButton({ className = "", compact = false, ...props }: ButtonProps & { compact?: boolean }) {
+  return (
+    <button
+      className={`type-label flex h-[52px] touch-manipulation items-center justify-center border-2 border-fg ${compact ? "px-3 text-sm" : "px-4 text-base"} text-fg active:bg-surface disabled:border-line disabled:text-fg-3 ${className}`}
       {...props}
     />
   );
 }
 
 export function GhostButton({ className = "", ...props }: ButtonProps) {
-  return <button className={`h-12 rounded-xl px-3 text-[15px] font-medium text-fg-2 active:bg-surface ${className}`} {...props} />;
+  return <button className={`h-12 px-3 text-[15px] font-medium text-fg-2 active:bg-surface disabled:opacity-40 ${className}`} {...props} />;
 }
 
 export function IconButton({ className = "", ...props }: ButtonProps) {
   return (
     <button
-      className={`grid size-12 shrink-0 touch-manipulation place-items-center rounded-[14px] bg-surface-2 text-fg active:bg-line disabled:opacity-30 ${className}`}
+      className={`grid size-12 shrink-0 touch-manipulation place-items-center border-2 border-fg text-fg active:bg-surface disabled:border-line disabled:text-fg-3 ${className}`}
       {...props}
     />
   );
 }
 
-/** A program day's code (A, Pu, U…) in an orange tile: marks lifting sessions. */
-export function DayBadge({ code }: { code: string }) {
-  return <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-[17px] font-extrabold text-accent">{code}</span>;
+const backClass = "-ml-1 flex h-12 items-center gap-0.5 self-start pr-2 text-[15px] font-medium text-fg-2 disabled:opacity-40";
+
+export function BackLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link href={href} className={backClass}>
+      <ChevronLeftIcon className="size-5" />
+      {children}
+    </Link>
+  );
+}
+
+export function BackButton({ className = "", children, ...props }: ButtonProps) {
+  return (
+    <button type="button" className={`${backClass} ${className}`} {...props}>
+      <ChevronLeftIcon className="size-5" />
+      {children}
+    </button>
+  );
+}
+
+/** A program day's code (A, Pu, U…) on a chalk tile. */
+export function DayCode({ code, size = "md" }: { code: string; size?: "md" | "lg" }) {
+  return (
+    <span
+      className={`type-display grid shrink-0 place-items-center bg-fg px-1 text-bg ${size === "lg" ? "h-12 min-w-12 text-[26px]" : "h-[34px] min-w-[34px] text-[19px]"}`}
+    >
+      {code}
+    </span>
+  );
 }
 
 /** The day's code for program sessions, a dumbbell for custom workouts. */
 export function SessionBadge({ dayCode }: { dayCode: string | null }) {
-  if (dayCode !== null) return <DayBadge code={dayCode} />;
+  if (dayCode !== null) return <DayCode code={dayCode} />;
   return (
-    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+    <span className="grid size-[34px] shrink-0 place-items-center bg-fg text-bg">
       <DumbbellIcon className="size-5" />
     </span>
   );
@@ -46,16 +85,44 @@ export function SessionBadge({ dayCode }: { dayCode: string | null }) {
 /** Blue tile: marks runs. */
 export function RunBadge() {
   return (
-    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-run-soft text-run">
+    <span className="grid size-[34px] shrink-0 place-items-center bg-run text-bg">
       <RunIcon className="size-5" />
     </span>
   );
 }
 
+/** A section under a thick chalk rule. */
+export function SectionHead({ title, meta }: { title: ReactNode; meta?: ReactNode }) {
+  return (
+    <div className="flex items-end justify-between gap-3 border-t-[3px] border-fg pt-2 pb-1">
+      <h2 className="type-display min-w-0 text-[26px]">{title}</h2>
+      {meta && <span className="shrink-0 text-right text-sm text-fg-2">{meta}</span>}
+    </div>
+  );
+}
+
+/** The weight went up because every set hit the top of the range. */
+export function WeightUpTag({ kg }: { kg: number }) {
+  return <span className="type-label shrink-0 bg-accent px-1.5 py-0.5 text-xs text-on-accent">+{kg} kg</span>;
+}
+
+/** Where the week sits in the block, e.g. "Wk 5 · Peak". */
+export function PhaseTag({ children }: { children: ReactNode }) {
+  return <span className="type-label shrink-0 border-2 border-accent px-1.5 py-0.5 text-xs text-accent">{children}</span>;
+}
+
+export function OfflineNotice() {
+  return (
+    <p role="status" className="border-2 border-fg px-3 py-2 text-[15px] font-semibold">
+      You&apos;re offline. Program changes need a connection.
+    </p>
+  );
+}
+
 export function Loading() {
-  return <p className="p-4 text-fg-3">Loading…</p>;
+  return <p className="p-4 text-fg-2">Loading…</p>;
 }
 
 export function ScreenTitle({ children }: { children: ReactNode }) {
-  return <h1 className="text-[32px] font-extrabold tracking-tight">{children}</h1>;
+  return <h1 className="type-display text-[52px]">{children}</h1>;
 }

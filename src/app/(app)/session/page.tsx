@@ -15,8 +15,8 @@ export default function SessionPage() {
   if (!session) {
     return (
       <main className="flex flex-1 flex-col gap-4 p-4">
-        <p className="text-xl font-semibold">No session in progress.</p>
-        <Link href="/" className="font-semibold text-accent">
+        <p className="type-display text-[30px]">No session in progress.</p>
+        <Link href="/" className="type-label flex h-12 items-center text-sm text-accent">
           Back to Today
         </Link>
       </main>

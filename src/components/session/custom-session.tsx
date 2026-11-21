@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronLeftIcon } from "../icons";
-import { GhostButton, PrimaryButton, card } from "../ui";
+import { BackLink, PrimaryButton } from "../ui";
 import type { Op, Session } from "@/lib/types";
 
 const SAVE_DELAY_MS = 800;
@@ -41,24 +39,21 @@ export function CustomSession({ session, apply }: { session: Session; apply: (op
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <header className="flex items-center justify-between">
-        <Link href="/" className="-ml-1 flex h-12 items-center gap-0.5 pr-1 text-[15px] font-medium text-fg-2">
-          <ChevronLeftIcon className="size-5" />
-          Today
-        </Link>
+        <BackLink href="/">Today</BackLink>
         {empty && (
-          <GhostButton onClick={cancel} className="px-2">
+          <button onClick={cancel} className="type-label -mr-2 h-12 px-2 text-sm text-fg">
             Cancel
-          </GhostButton>
+          </button>
         )}
       </header>
 
       <div>
-        <h1 className="text-[30px] leading-tight font-extrabold tracking-tight">{session.title}</h1>
-        <p className="mt-1 text-fg-2">Custom workout · {formatDate(session.date)}</p>
+        <h1 className="type-display text-[52px]">{session.title}</h1>
+        <p className="mt-2 text-fg-2">Custom workout · {formatDate(session.date)}</p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="custom-notes" className="text-sm font-medium text-fg-2">
+        <label htmlFor="custom-notes" className="type-label text-xs text-fg-2">
           Notes
         </label>
         <textarea
@@ -67,11 +62,11 @@ export function CustomSession({ session, apply }: { session: Session; apply: (op
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="What did you do? How did it feel?"
-          className={`${card} w-full p-4 text-lg outline-none placeholder:text-fg-3 focus:border-accent`}
+          className="w-full border-2 border-line bg-bg p-4 text-lg outline-none placeholder:text-fg-3 focus:border-accent"
         />
       </div>
 
-      <PrimaryButton onClick={finish} className="mt-auto min-h-[72px] text-[22px]">
+      <PrimaryButton tall onClick={finish} className="mt-auto">
         Finish
       </PrimaryButton>
     </main>
