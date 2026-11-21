@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveAccount, type AccountStore } from "./accounts";
+import { canSignIn, resolveAccount, type AccountStore } from "./accounts";
 
 type Row = { id: string; name: string; email: string | null; sub: string | null };
 
@@ -54,5 +54,19 @@ describe("resolveAccount", () => {
     const store = memoryStore([{ id: "anas", name: "Anas", email: "anas@gmail.com", sub: "g-anas" }]);
     await expect(resolveAccount(store, { sub: "g-other", email: "anas@gmail.com", name: "X" }, newId)).rejects.toThrow();
     expect(store.rows).toEqual([{ id: "anas", name: "Anas", email: "anas@gmail.com", sub: "g-anas" }]);
+  });
+});
+
+describe("canSignIn", () => {
+  it("lets an existing, active user in", () => {
+    expect(canSignIn({ disabled_at: null })).toBe(true);
+  });
+
+  it("refuses a blocked user", () => {
+    expect(canSignIn({ disabled_at: "2026-11-21T22:00:00Z" })).toBe(false);
+  });
+
+  it("refuses a deleted user whose cookie is still valid", () => {
+    expect(canSignIn(null)).toBe(false);
   });
 });

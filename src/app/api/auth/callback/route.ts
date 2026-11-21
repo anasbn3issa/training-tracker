@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveAccount } from "@/lib/accounts";
-import { supabaseAccounts } from "@/lib/accounts-db";
+import { isActiveUser, supabaseAccounts } from "@/lib/accounts-db";
 import { AUTH_COOKIE, AUTH_MAX_AGE_SEC, NAME_COOKIE, USER_COOKIE, authEnv, authToken, safeEqual } from "@/lib/auth";
 import { OAUTH_COOKIE, fetchProfile, googleEnv, parseOAuthCookie } from "@/lib/google";
 import { db } from "@/lib/supabase";
@@ -29,8 +29,11 @@ export async function GET(request: NextRequest) {
   });
   if (!profile) return failed();
 
-  const account = await resolveAccount(supabaseAccounts(db()), profile, () => crypto.randomUUID()).catch(() => null);
+  const supabase = db();
+  const account = await resolveAccount(supabaseAccounts(supabase), profile, () => crypto.randomUUID()).catch(() => null);
   if (!account) return failed();
+  // A blocked account gets no cookie at all (see users.disabled_at).
+  if (!(await isActiveUser(supabase, account.id).catch(() => false))) return failed();
 
   const options: { sameSite: "lax"; secure: boolean; maxAge: number; path: string } = {
     sameSite: "lax",

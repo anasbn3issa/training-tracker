@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, use, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { idbKv } from "@/lib/idb-kv";
+import { idbKv, userCacheName } from "@/lib/idb-kv";
 import { SyncStore, type Snapshot } from "@/lib/sync";
 import { localIsoDate } from "@/lib/today";
 import { currentUserId } from "@/lib/user-cookie";
@@ -19,7 +19,7 @@ const DataContext = createContext<Data | null>(null);
 function createStore() {
   return new SyncStore({
     // One offline cache per user, so a shared phone never mixes their data.
-    kv: idbKv(() => `training-tracker-${currentUserId()}`),
+    kv: idbKv(() => userCacheName(currentUserId())),
     // Before multi-user there was one cache, and it was Anas's: adopt anything still unsent.
     legacyKv: currentUserId() === "anas" ? idbKv(() => "training-tracker") : undefined,
     fetch: (url, init) => fetch(url, init),

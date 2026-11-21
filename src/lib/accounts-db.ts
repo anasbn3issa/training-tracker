@@ -1,5 +1,5 @@
 import "server-only";
-import type { AccountStore } from "./accounts";
+import { canSignIn, type AccountStore } from "./accounts";
 import type { db } from "./supabase";
 
 export function supabaseAccounts(supabase: ReturnType<typeof db>): AccountStore {
@@ -30,4 +30,11 @@ export function supabaseAccounts(supabase: ReturnType<typeof db>): AccountStore 
       return data;
     },
   };
+}
+
+/** Whether `userId` may use the app: still exists and isn't blocked (see canSignIn). */
+export async function isActiveUser(supabase: ReturnType<typeof db>, userId: string): Promise<boolean> {
+  const { data, error } = await supabase.from("users").select("disabled_at").eq("id", userId).maybeSingle();
+  if (error) throw new Error(error.message);
+  return canSignIn(data);
 }

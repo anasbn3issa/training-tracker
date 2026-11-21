@@ -29,6 +29,7 @@ Supabase Studio (local DB browser) runs at http://127.0.0.1:54323.
 | `GOOGLE_CLIENT_ID`    | Google OAuth client id (web application) |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `AUTH_SECRET`         | Signs the login cookies (`openssl rand -base64 32`). Rotating it logs every device out |
+| `PRIVACY_CONTACT`     | Email shown on `/privacy` for data requests. Set it in production |
 
 The browser never talks to Supabase directly: all reads/writes go through `/api/*` route handlers.
 RLS is enabled on every table with no policies, so the public keys can access nothing.

@@ -26,3 +26,11 @@ export async function resolveAccount(store: AccountStore, profile: GoogleProfile
     (await store.create({ id: newId(), name: profile.name, email: profile.email, sub: profile.sub }))
   );
 }
+
+/**
+ * Whether a user may use the app: their row still exists (not deleted) and isn't blocked.
+ * Checked on every API request and at Google sign-in, since a cookie stays valid for a year.
+ */
+export function canSignIn(user: { disabled_at: string | null } | null): boolean {
+  return user !== null && user.disabled_at === null;
+}
