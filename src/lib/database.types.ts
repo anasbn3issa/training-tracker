@@ -250,17 +250,23 @@ export type Database = {
       users: {
         Row: {
           block_start_date: string;
+          email: string | null;
+          google_sub: string | null;
           id: string;
           name: string;
         };
         ComputedFields: never;
         Insert: {
-          block_start_date: string;
+          block_start_date?: string;
+          email?: string | null;
+          google_sub?: string | null;
           id: string;
           name: string;
         };
         Update: {
           block_start_date?: string;
+          email?: string | null;
+          google_sub?: string | null;
           id?: string;
           name?: string;
         };

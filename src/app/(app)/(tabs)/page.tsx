@@ -8,8 +8,7 @@ import { DayBadge, GhostButton, IconButton, Loading, PrimaryButton, RunBadge, Se
 import { blockWeek, effortCue, setsForWeek, shiftBlockStart } from "@/lib/progression";
 import { findInProgress, isoWeekday, localIsoDate, runKmLast7Days } from "@/lib/today";
 import type { ProgramDay } from "@/lib/types";
-import { currentUserId } from "@/lib/user-cookie";
-import { userName } from "@/lib/users";
+import { currentUserName } from "@/lib/user-cookie";
 import { uuid } from "@/lib/uuid";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -61,7 +60,7 @@ export default function TodayPage() {
     <main className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-4">
       <header>
         <p className="text-[15px] text-fg-2">
-          {formatDay(today)} · {userName(currentUserId() ?? "")}
+          {formatDay(today)} · {currentUserName()}
         </p>
         <div className="mt-1.5 flex items-center justify-between">
           <h1 className="text-[40px] leading-tight font-extrabold tracking-tight">

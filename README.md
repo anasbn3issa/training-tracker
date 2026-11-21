@@ -1,6 +1,6 @@
 # Training Tracker
 
-Single-user, phone-first tracker for one fixed lifting program (4 days/week) plus runs.
+Phone-first tracker for one fixed lifting program (4 days/week) plus runs.
 Next.js (App Router) + Supabase Postgres + Tailwind.
 
 ## Local setup
@@ -12,7 +12,7 @@ npm install
 npm run db:start        # local Supabase in Docker: applies migrations + seed on first start
 cp .env.example .env.local
 npx supabase status -o env   # copy API_URL -> SUPABASE_URL, SECRET_KEY -> SUPABASE_SECRET_KEY
-# set AUTH_SECRET and PASSWORD_ANAS / PASSWORD_ATEF in .env.local
+# set AUTH_SECRET, GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local
 npm run dev
 ```
 
@@ -24,8 +24,8 @@ Supabase Studio (local DB browser) runs at http://127.0.0.1:54323.
 | --------------------- | ------------------------------------------------------------------ |
 | `SUPABASE_URL`        | Supabase API URL                                                   |
 | `SUPABASE_SECRET_KEY` | Supabase secret (service-role) key. Server-side only, bypasses RLS |
-| `PASSWORD_ANAS`       | Anas's password. One `PASSWORD_<ID>` per user (see `src/lib/users.ts`) |
-| `PASSWORD_ATEF`       | Atef's password |
+| `GOOGLE_CLIENT_ID`    | Google OAuth client id (web application) |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `AUTH_SECRET`         | Signs the login cookies (`openssl rand -base64 32`). Rotating it logs every device out |
 
 The browser never talks to Supabase directly: all reads/writes go through `/api/*` route handlers.
@@ -48,10 +48,21 @@ After a schema change, regenerate the TypeScript types with `npm run db:types`.
 
 ## Users
 
-Each user logs in with their name + own password and only sees their own sessions, sets and runs;
-the program is shared. Each user has their own block start (`users.block_start_date`), changed by
-the −/+ on Today (saved). To add a user: insert a row in `users`, add them to `src/lib/users.ts`,
-and set `PASSWORD_<ID>` in Vercel.
+Anyone signs in with Google (`src/app/api/auth`, OpenID Connect code flow + PKCE). The first
+sign-in creates their `users` row; each user only sees their own sessions, sets and runs, and the
+program is shared. Each user has their own block start (`users.block_start_date`, starting on the
+Monday of the week they sign up), changed by the −/+ on Today (saved).
+
+A user is matched by `users.google_sub` (Google's account id). Users from before Google sign-in
+(`anas`, `atef`) keep their id and data: set their email once, by hand, and their first Google
+sign-in with that verified email links the row. Emails are never committed (the repo is public):
+
+```sql
+update users set email = lower('<their gmail>') where id = 'anas';
+```
+
+Google only accepts plain-http redirect URIs on `localhost`, so signing in from a phone against the
+laptop (`http://<laptop-ip>`) doesn't work: use a Vercel preview or an HTTPS tunnel.
 
 ## Scripts
 
@@ -87,6 +98,7 @@ ops on top (last write wins).
    npx supabase link --project-ref <project-ref>
    npx supabase db push --include-seed
    ```
-2. Vercel: import the GitHub repo, then set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `PASSWORD_<ID>` for each user,
-   `AUTH_SECRET` for Production. Every push to `main` deploys.
+2. Vercel: import the GitHub repo, then set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GOOGLE_CLIENT_ID`,
+   `GOOGLE_CLIENT_SECRET` and `AUTH_SECRET` for Production. Add `https://<domain>/api/auth/callback`
+   to the OAuth client's redirect URIs. Every push to `main` deploys.
 3. Functions run in `dub1` (Dublin, `vercel.json`), next to the Supabase project in `eu-west-1`.
