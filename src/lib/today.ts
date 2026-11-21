@@ -12,7 +12,7 @@ const parseUtc = (iso: string) => {
   return new Date(Date.UTC(y, m - 1, d));
 };
 
-/** 1 = Monday ... 7 = Sunday, matching program_days.weekday. */
+/** 1 = Monday ... 7 = Sunday, matching program_schedule.weekday. */
 export const isoWeekday = (iso: string) => ((parseUtc(iso).getUTCDay() + 6) % 7) + 1;
 
 export const addDays = (iso: string, days: number) => {
@@ -42,7 +42,7 @@ export function staleSessionOps(sessions: Session[], setLogs: SetLog[], today: s
   return sessions
     .filter((s) => s.completed_at === null && s.date < today)
     .map((s): Op => {
-      if (s.day_code === null) return { kind: "upsert", table: "sessions", row: { ...s, completed_at: `${s.date}T23:59:59Z` } };
+      if (s.day_id === null) return { kind: "upsert", table: "sessions", row: { ...s, completed_at: `${s.date}T23:59:59Z` } };
       const lastDone = setLogs
         .filter((l) => l.session_id === s.id)
         .map((l) => l.done_at)

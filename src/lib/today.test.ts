@@ -4,7 +4,7 @@ import type { Run, Session, SetLog } from "./types";
 
 const session = (id: string, date: string, completed_at: string | null = null): Session => ({
   id,
-  day_code: "A",
+  day_id: "day-a",
   date,
   block_week: 4,
   notes: null,
@@ -89,7 +89,7 @@ describe("staleSessionOps", () => {
   });
 
   it("completes an abandoned custom workout (title + notes) at the end of its day instead of deleting it", () => {
-    const custom: Session = { ...session("arms", "2026-10-21"), day_code: null, title: "Arms", notes: "felt strong" };
+    const custom: Session = { ...session("arms", "2026-10-21"), day_id: null, title: "Arms", notes: "felt strong" };
     expect(staleSessionOps([custom], [], "2026-10-23")).toEqual([
       { kind: "upsert", table: "sessions", row: { ...custom, completed_at: "2026-10-21T23:59:59Z" } },
     ]);

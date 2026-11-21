@@ -45,26 +45,37 @@ export type Database = {
       program_days: {
         Row: {
           code: string;
+          id: string;
           name: string;
-          weekday: number;
+          program_id: string;
         };
         ComputedFields: never;
         Insert: {
           code: string;
+          id?: string;
           name: string;
-          weekday: number;
+          program_id: string;
         };
         Update: {
           code?: string;
+          id?: string;
           name?: string;
-          weekday?: number;
+          program_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "program_days_program_id_fkey";
+            columns: ["program_id"];
+            isOneToOne: false;
+            referencedRelation: "programs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       program_exercises: {
         Row: {
           base_sets: number;
-          day_code: string;
+          day_id: string;
           exercise_id: string;
           id: number;
           note: string | null;
@@ -75,7 +86,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           base_sets: number;
-          day_code: string;
+          day_id: string;
           exercise_id: string;
           id?: number;
           note?: string | null;
@@ -85,7 +96,7 @@ export type Database = {
         };
         Update: {
           base_sets?: number;
-          day_code?: string;
+          day_id?: string;
           exercise_id?: string;
           id?: number;
           note?: string | null;
@@ -95,17 +106,97 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "program_exercises_day_code_fkey";
-            columns: ["day_code"];
+            foreignKeyName: "program_exercises_day_id_fkey";
+            columns: ["day_id"];
             isOneToOne: false;
             referencedRelation: "program_days";
-            referencedColumns: ["code"];
+            referencedColumns: ["id"];
           },
           {
             foreignKeyName: "program_exercises_exercise_id_fkey";
             columns: ["exercise_id"];
             isOneToOne: false;
             referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      program_schedule: {
+        Row: {
+          day_id: string;
+          program_id: string;
+          weekday: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          day_id: string;
+          program_id: string;
+          weekday: number;
+        };
+        Update: {
+          day_id?: string;
+          program_id?: string;
+          weekday?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "program_schedule_day_id_fkey";
+            columns: ["day_id"];
+            isOneToOne: false;
+            referencedRelation: "program_days";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "program_schedule_program_id_fkey";
+            columns: ["program_id"];
+            isOneToOne: false;
+            referencedRelation: "programs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      programs: {
+        Row: {
+          archived_at: string | null;
+          created_at: string;
+          id: string;
+          name: string;
+          slug: string | null;
+          template_id: string | null;
+          user_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          archived_at?: string | null;
+          created_at?: string;
+          id?: string;
+          name: string;
+          slug?: string | null;
+          template_id?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          archived_at?: string | null;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          slug?: string | null;
+          template_id?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "programs_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "programs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "programs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
             referencedColumns: ["id"];
           },
         ];
@@ -157,7 +248,7 @@ export type Database = {
           block_week: number;
           completed_at: string | null;
           date: string;
-          day_code: string | null;
+          day_id: string | null;
           id: string;
           notes: string | null;
           title: string | null;
@@ -168,7 +259,7 @@ export type Database = {
           block_week: number;
           completed_at?: string | null;
           date: string;
-          day_code?: string | null;
+          day_id?: string | null;
           id: string;
           notes?: string | null;
           title?: string | null;
@@ -178,7 +269,7 @@ export type Database = {
           block_week?: number;
           completed_at?: string | null;
           date?: string;
-          day_code?: string | null;
+          day_id?: string | null;
           id?: string;
           notes?: string | null;
           title?: string | null;
@@ -186,11 +277,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "sessions_day_code_fkey";
-            columns: ["day_code"];
+            foreignKeyName: "sessions_day_id_fkey";
+            columns: ["day_id"];
             isOneToOne: false;
             referencedRelation: "program_days";
-            referencedColumns: ["code"];
+            referencedColumns: ["id"];
           },
           {
             foreignKeyName: "sessions_user_id_fkey";
@@ -277,7 +368,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      choose_program: { Args: { p_block_start: string; p_schedule: Json; p_template: string; p_user: string }; Returns: string };
+      copy_program: { Args: { p_template: string; p_user: string }; Returns: string };
+      set_day_exercises: { Args: { p_day: string; p_rows: Json }; Returns: undefined };
+      set_schedule: { Args: { p_program: string; p_schedule: Json }; Returns: undefined };
     };
     Enums: {
       load_type: "barbell" | "dumbbell_per_hand" | "machine" | "bodyweight" | "bodyweight_plus";

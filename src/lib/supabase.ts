@@ -8,6 +8,9 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/** Postgres classes 22 (data exception) and 23 (integrity violation) won't fix themselves: retrying is pointless. */
+export const isPermanentDbError = (code: string | undefined) => code?.startsWith("22") === true || code?.startsWith("23") === true;
+
 // Server-side only: the secret key bypasses RLS. The browser never talks to
 // Supabase directly; it goes through our route handlers.
 export function db() {

@@ -127,10 +127,10 @@ describe("suggest: increment per load type", () => {
 
 describe("findLastSets", () => {
   const sessions = [
-    { id: "b-old", day_code: "B", date: "2026-10-07", completed_at: "2026-10-07T19:00:00Z" },
-    { id: "b-new", day_code: "B", date: "2026-10-14", completed_at: "2026-10-14T19:00:00Z" },
-    { id: "d-newer", day_code: "D", date: "2026-10-17", completed_at: "2026-10-17T11:00:00Z" },
-    { id: "b-open", day_code: "B", date: "2026-10-21", completed_at: null },
+    { id: "b-old", day_id: "B", date: "2026-10-07", completed_at: "2026-10-07T19:00:00Z" },
+    { id: "b-new", day_id: "B", date: "2026-10-14", completed_at: "2026-10-14T19:00:00Z" },
+    { id: "d-newer", day_id: "D", date: "2026-10-17", completed_at: "2026-10-17T11:00:00Z" },
+    { id: "b-open", day_id: "B", date: "2026-10-21", completed_at: null },
   ];
   const log = (session_id: string, exercise_id: string, set_index: number, weight_kg: number, reps: number) => ({
     session_id,
@@ -160,9 +160,19 @@ describe("findLastSets", () => {
   });
 
   it("skips sessions that do not contain the exercise", () => {
-    const withoutCurl = [...sessions, { id: "b-latest", day_code: "B", date: "2026-10-28", completed_at: "2026-10-28T19:00:00Z" }];
+    const withoutCurl = [...sessions, { id: "b-latest", day_id: "B", date: "2026-10-28", completed_at: "2026-10-28T19:00:00Z" }];
     const latestLogs = [...logs, log("b-latest", "squat", 1, 82.5, 6)];
     expect(findLastSets(withoutCurl, latestLogs, "B", "seated-leg-curl")).toHaveLength(2);
+  });
+
+  it("falls back to the latest session of any day when this day has no history (new program)", () => {
+    expect(findLastSets(sessions, logs, "ppl-legs", "squat")).toEqual([{ weight_kg: 80, reps: 8 }]);
+    expect(findLastSets(sessions, logs, "ppl-legs", "seated-leg-curl")).toEqual([{ weight_kg: 35, reps: 12 }]);
+  });
+
+  it("ignores in-progress sessions in the fallback too", () => {
+    const onlyOpen = [{ id: "b-open", day_id: "B", date: "2026-10-21", completed_at: null }];
+    expect(findLastSets(onlyOpen, logs, "ppl-legs", "seated-leg-curl")).toEqual([]);
   });
 
   it("returns an empty list when there is no history", () => {

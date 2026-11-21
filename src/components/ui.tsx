@@ -28,12 +28,12 @@ export function IconButton({ className = "", ...props }: ButtonProps) {
   );
 }
 
-/** Day code (A–D) in an orange tile: marks lifting sessions. */
+/** A program day's code (A, Pu, U…) in an orange tile: marks lifting sessions. */
 export function DayBadge({ code }: { code: string }) {
   return <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-[17px] font-extrabold text-accent">{code}</span>;
 }
 
-/** Day code (A–D) for program sessions, a dumbbell for custom workouts. */
+/** The day's code for program sessions, a dumbbell for custom workouts. */
 export function SessionBadge({ dayCode }: { dayCode: string | null }) {
   if (dayCode !== null) return <DayBadge code={dayCode} />;
   return (

@@ -1,17 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useData } from "@/components/data-provider";
-import { MinusIcon, PlusIcon } from "@/components/icons";
+import { MinusIcon, PlusIcon, SlidersIcon } from "@/components/icons";
 import { DayBadge, GhostButton, IconButton, Loading, PrimaryButton, RunBadge, SessionBadge, card } from "@/components/ui";
+import { activeDays, dayPrescriptions, formatWeekdays, scheduledDay, weekdaysOf } from "@/lib/program";
 import { blockWeek, effortCue, setsForWeek, shiftBlockStart } from "@/lib/progression";
 import { findInProgress, isoWeekday, localIsoDate, runKmLast7Days } from "@/lib/today";
 import type { ProgramDay } from "@/lib/types";
 import { currentUserName } from "@/lib/user-cookie";
 import { uuid } from "@/lib/uuid";
-
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const formatDay = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
@@ -25,16 +25,17 @@ export default function TodayPage() {
   if (!ready || !program) return <Loading />;
 
   const today = localIsoDate(new Date());
-  const scheduled = program.days.find((d) => d.weekday === isoWeekday(today)) ?? null;
+  const scheduled = scheduledDay(program, isoWeekday(today));
   const inProgress = findInProgress(log.sessions, today);
   const week = inProgress?.block_week ?? blockWeek(log.blockStartDate, today);
-  const shownDay = program.days.find((d) => d.code === inProgress?.day_code) ?? scheduled;
+  const shownDay = program.days.find((d) => d.id === inProgress?.day_id) ?? scheduled;
 
-  const exercises = program.prescriptions
-    .filter((p) => p.day_code === shownDay?.code)
-    .map((p) => ({ ...p, name: program.exercises.find((e) => e.id === p.exercise_id)?.name ?? p.exercise_id }));
+  const exercises = dayPrescriptions(program, shownDay?.id ?? null).map((p) => ({
+    ...p,
+    name: program.exercises.find((e) => e.id === p.exercise_id)?.name ?? p.exercise_id,
+  }));
 
-  function startSession(target: { day_code: string; title: null } | { day_code: null; title: string }) {
+  function startSession(target: { day_id: string; title: null } | { day_id: null; title: string }) {
     apply([
       {
         kind: "upsert",
@@ -47,8 +48,8 @@ export default function TodayPage() {
     setCustomTitle(null);
     router.push("/session");
   }
-  const start = (day: ProgramDay) => startSession({ day_code: day.code, title: null });
-  const startCustom = (title: string) => startSession({ day_code: null, title: title.trim() });
+  const start = (day: ProgramDay) => startSession({ day_id: day.id, title: null });
+  const startCustom = (title: string) => startSession({ day_id: null, title: title.trim() });
 
   // Saved: shifts this user's block start so the app remembers the week from now on.
   const changeWeek = (delta: number) =>
@@ -59,9 +60,14 @@ export default function TodayPage() {
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-4">
       <header>
-        <p className="text-[15px] text-fg-2">
-          {formatDay(today)} · {currentUserName()}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[15px] text-fg-2">
+            {formatDay(today)} · {currentUserName()}
+          </p>
+          <Link href="/program" aria-label="Your program" className="-my-2 -mr-2 grid size-11 place-items-center rounded-xl text-fg-2 active:bg-surface">
+            <SlidersIcon className="size-[22px]" />
+          </Link>
+        </div>
         <div className="mt-1.5 flex items-center justify-between">
           <h1 className="text-[40px] leading-tight font-extrabold tracking-tight">
             Week <span className="tabular-nums">{week}</span>
@@ -89,7 +95,7 @@ export default function TodayPage() {
         </p>
       </header>
 
-      {inProgress?.day_code === null ? (
+      {inProgress?.day_id === null ? (
         <section className={`${card} flex items-center gap-3 p-4`}>
           <SessionBadge dayCode={null} />
           <div>
@@ -104,7 +110,7 @@ export default function TodayPage() {
             <div>
               <h2 className="text-xl font-bold">{shownDay.name}</h2>
               <p className="text-[13px] text-fg-3">
-                {WEEKDAYS[shownDay.weekday - 1]} · {exercises.length} exercises
+                {formatWeekdays(weekdaysOf(program, shownDay.id))} · {exercises.length} exercises
               </p>
             </div>
           </div>
@@ -149,7 +155,7 @@ export default function TodayPage() {
           <PrimaryButton onClick={() => router.push("/session")} className="min-h-[72px] flex-col gap-0">
             Resume workout
             <span className="text-sm font-semibold opacity-70">
-              {inProgress.day_code === null ? inProgress.title : `${setsLogged} sets logged`}
+              {inProgress.day_id === null ? inProgress.title : `${setsLogged} sets logged`}
             </span>
           </PrimaryButton>
         ) : customTitle !== null ? (
@@ -182,9 +188,9 @@ export default function TodayPage() {
         ) : showPicker ? (
           <>
             <div className="grid grid-cols-2 gap-2">
-              {program.days.map((d) => (
+              {activeDays(program).map((d) => (
                 <button
-                  key={d.code}
+                  key={d.id}
                   onClick={() => start(d)}
                   className={`${card} flex min-h-[72px] items-center gap-3 p-3 text-left active:bg-surface-2`}
                 >

@@ -19,7 +19,7 @@ export type Suggestion = {
   lastSets: LoggedSet[];
 };
 
-type SessionRef = { id: string; day_code: string | null; date: string; completed_at: string | null };
+type SessionRef = { id: string; day_id: string | null; date: string; completed_at: string | null };
 type SetRef = LoggedSet & { session_id: string; exercise_id: string; set_index: number };
 
 const DELOAD_WEEK = 6;
@@ -57,20 +57,25 @@ export function suggest(rx: Prescription, week: number, lastSets: LoggedSet[]): 
 }
 
 /**
- * Sets of the most recent completed session of `dayCode` that contains the exercise.
+ * Sets of the most recent completed session of `dayId` that contains the exercise.
  * Scoped to the same day so a lighter repeat on another day (e.g. Saturday's
  * leg curl at ~80%) doesn't drive the main day's progression.
+ * With no history on that day (new program, swapped-in exercise), falls back to
+ * the most recent completed session of any day, so a program switch keeps the weights.
  */
-export function findLastSets(sessions: SessionRef[], setLogs: SetRef[], dayCode: string, exerciseId: string): LoggedSet[] {
-  const candidates = sessions
-    .filter((s) => s.day_code === dayCode && s.completed_at !== null)
+export function findLastSets(sessions: SessionRef[], setLogs: SetRef[], dayId: string, exerciseId: string): LoggedSet[] {
+  const completed = sessions
+    .filter((s) => s.completed_at !== null)
     .sort((a, b) => b.date.localeCompare(a.date) || (b.completed_at ?? "").localeCompare(a.completed_at ?? ""));
+  const sameDay = completed.filter((s) => s.day_id === dayId);
 
-  for (const session of candidates) {
-    const sets = setLogs
-      .filter((l) => l.session_id === session.id && l.exercise_id === exerciseId)
-      .sort((a, b) => a.set_index - b.set_index);
-    if (sets.length > 0) return sets.map(({ weight_kg, reps }) => ({ weight_kg, reps }));
+  for (const candidates of [sameDay, completed]) {
+    for (const session of candidates) {
+      const sets = setLogs
+        .filter((l) => l.session_id === session.id && l.exercise_id === exerciseId)
+        .sort((a, b) => a.set_index - b.set_index);
+      if (sets.length > 0) return sets.map(({ weight_kg, reps }) => ({ weight_kg, reps }));
+    }
   }
   return [];
 }

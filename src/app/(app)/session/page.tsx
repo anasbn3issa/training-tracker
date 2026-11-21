@@ -23,6 +23,6 @@ export default function SessionPage() {
     );
   }
   // key: a new session starts from a fresh screen state.
-  if (session.day_code === null) return <CustomSession key={session.id} session={session} apply={apply} />;
-  return <ActiveSession key={session.id} session={session} dayCode={session.day_code} program={program} log={log} apply={apply} />;
+  if (session.day_id === null) return <CustomSession key={session.id} session={session} apply={apply} />;
+  return <ActiveSession key={session.id} session={session} dayId={session.day_id} program={program} log={log} apply={apply} />;
 }

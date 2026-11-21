@@ -1,4 +1,4 @@
-import { applyOps } from "./ops";
+import { applyOps, upgradeLegacyOps } from "./ops";
 import { staleSessionOps } from "./today";
 import type { LogState, Op, Program } from "./types";
 
@@ -72,6 +72,23 @@ export class SyncStore {
     this.sync();
   };
 
+  /**
+   * Re-reads program and log from the server, after a program change made online. Resolves to false
+   * when that failed. `dropBlockStart`: the server just reset the block (program switch), so a week
+   * change still queued from before must not overwrite it.
+   */
+  refresh = async ({ dropBlockStart = false } = {}): Promise<boolean> => {
+    let pulled = false;
+    await this.exclusive(async () => {
+      if (dropBlockStart) {
+        this.outbox = this.outbox.filter((op) => op.kind !== "set_block_start");
+        this.persist();
+      }
+      pulled = await this.pull();
+    });
+    return pulled;
+  };
+
   /** Try to send the outbox now (on load, when back online, when the app returns to the foreground). */
   sync = () => {
     if (this.flushQueued) return;
@@ -89,7 +106,9 @@ export class SyncStore {
     // Merged under the same lock as flushes: a flush must never slice a queue it didn't send from.
     await this.exclusive(() => this.loadCache());
 
-    await this.exclusive(() => this.pull());
+    await this.exclusive(async () => {
+      await this.pull();
+    });
     if (this.snapshot.ready) {
       const { sessions, setLogs } = this.snapshot.log;
       this.apply(staleSessionOps(sessions, setLogs, this.deps.today()));
@@ -106,9 +125,12 @@ export class SyncStore {
     ]);
     const adopted = legacy ?? []; // older than anything else, so it goes first
     const early = this.outbox; // applied (and not yet sent) while the cache was loading
-    this.outbox = [...adopted, ...(outbox ?? []), ...early];
+    // A program cached before per-user programs has no schedule, and its log has no day ids: wait for the first pull.
+    const cached = program?.schedule ? program : null;
+    const upgrade = (ops: Op[]) => (cached ? upgradeLegacyOps(ops, cached.days) : ops);
+    this.outbox = upgrade([...adopted, ...(outbox ?? []), ...early]);
     this.loaded = true;
-    if (program && log) this.update({ program, log: applyOps(log, [...adopted, ...early]), ready: true });
+    if (cached && log) this.update({ program: cached, log: applyOps(log, upgrade([...adopted, ...early])), ready: true });
     else this.update({});
     this.persist();
     if (adopted.length > 0 && this.deps.legacyKv) {
@@ -143,22 +165,28 @@ export class SyncStore {
     return this.queue;
   }
 
-  /** Server state, with not-yet-synced local ops replayed on top (last write wins). */
-  private async pull() {
+  /** Server state, with not-yet-synced local ops replayed on top (last write wins). True when it worked. */
+  private async pull(): Promise<boolean> {
     try {
       const [programRes, stateRes] = await Promise.all([
         this.deps.fetch("/api/program", { cache: "no-store" }),
         this.deps.fetch("/api/state", { cache: "no-store" }),
       ]);
-      if (programRes.status === 401 || stateRes.status === 401) return this.deps.onUnauthorized();
-      if (!programRes.ok || !stateRes.ok) return;
+      if (programRes.status === 401 || stateRes.status === 401) {
+        this.deps.onUnauthorized();
+        return false;
+      }
+      if (!programRes.ok || !stateRes.ok) return false;
       const program: Program = await programRes.json();
       const server: LogState = await stateRes.json();
+      this.outbox = upgradeLegacyOps(this.outbox, program.days);
       this.update({ program, log: applyOps(server, this.outbox), ready: true });
       void this.deps.kv.set("program", program);
       this.persist();
+      return true;
     } catch {
       // Offline: keep showing the cached state.
+      return false;
     }
   }
 
