@@ -20,20 +20,26 @@ export default function AccountPage() {
   if (!ready) return <Loading />;
 
   async function remove() {
-    // Read before deleting: the server's response clears the cookie that holds it.
+    // The login page clears this user's offline copy (here the open cache would block it). Written before
+    // deleting: the response clears the cookie holding the id, and a background sync answered 401 may
+    // send the page to /login before the call returns.
     const userId = currentUserId();
+    const remember = (id: string | null) => {
+      try {
+        if (id) sessionStorage.setItem(CLEAR_CACHE_KEY, id);
+        else sessionStorage.removeItem(CLEAR_CACHE_KEY);
+      } catch {
+        // Storage blocked: the offline copy stays, the account itself is still deleted on the server.
+      }
+    };
     setDeleting(true);
     setError(null);
+    remember(userId);
     try {
       await deleteAccount();
-      // The login page clears this user's offline copy: here the open cache would block the deletion.
-      try {
-        if (userId) sessionStorage.setItem(CLEAR_CACHE_KEY, userId);
-      } catch {
-        // Storage blocked: the offline copy stays, but the account is already gone on the server.
-      }
       window.location.replace("/login?deleted=1");
     } catch (e) {
+      remember(null); // still signed in: the login page must not wipe this cache
       setError(e instanceof Error ? e.message : "Couldn't delete your account. Try again.");
       setDeleting(false);
     }

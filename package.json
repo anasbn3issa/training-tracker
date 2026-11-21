@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:db": "node --env-file=.env.local node_modules/vitest/vitest.mjs run integration",
     "db:start": "supabase start -x realtime,storage-api,imgproxy,edge-runtime,logflare,vector,mailpit,supavisor",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

@@ -41,7 +41,10 @@ export default function PrivacyPage() {
       </Part>
 
       <Part title="Where">
-        <p>The data is stored with Supabase (database) and the app is hosted by Vercel. They process it only to provide those services.</p>
+        <p>
+          The data is stored with Supabase, in a database in Ireland (EU), and the app is hosted by Vercel. They process it only to provide
+          those services.
+        </p>
       </Part>
 
       <Part title="Cookies">
@@ -52,6 +55,10 @@ export default function PrivacyPage() {
         <p>
           Keep it as long as you use the app. Delete your account at any time from Account, at the bottom of your program page: your account
           and everything you logged are deleted at once, on the server and on that phone. This can&apos;t be undone.
+        </p>
+        <p>
+          The database provider keeps short-lived backups for recovery after an incident. Deleted data can stay in them until they expire and
+          are overwritten.
         </p>
         <p>
           For a copy of your data, a correction, or any question:{" "}
