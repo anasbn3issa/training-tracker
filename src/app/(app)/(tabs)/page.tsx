@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useData } from "@/components/data-provider";
-import { MinusIcon, PlusIcon } from "@/components/icons";
+import { MinusIcon, PlusIcon, SlidersIcon } from "@/components/icons";
 import { DayBadge, GhostButton, IconButton, Loading, PrimaryButton, RunBadge, SessionBadge, card } from "@/components/ui";
 import { activeDays, dayPrescriptions, formatWeekdays, scheduledDay, weekdaysOf } from "@/lib/program";
 import { blockWeek, effortCue, setsForWeek, shiftBlockStart } from "@/lib/progression";
@@ -59,9 +60,14 @@ export default function TodayPage() {
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-4">
       <header>
-        <p className="text-[15px] text-fg-2">
-          {formatDay(today)} · {currentUserName()}
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[15px] text-fg-2">
+            {formatDay(today)} · {currentUserName()}
+          </p>
+          <Link href="/program" aria-label="Your program" className="-my-2 -mr-2 grid size-11 place-items-center rounded-xl text-fg-2 active:bg-surface">
+            <SlidersIcon className="size-[22px]" />
+          </Link>
+        </div>
         <div className="mt-1.5 flex items-center justify-between">
           <h1 className="text-[40px] leading-tight font-extrabold tracking-tight">
             Week <span className="tabular-nums">{week}</span>
