@@ -2,8 +2,6 @@ import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { ChevronLeftIcon, DumbbellIcon, RunIcon } from "./icons";
 
-/** @deprecated Boxed cards are gone in the redesign. Removed in Task 11. */
-export const card = "border border-line bg-surface";
 export const eyebrow = "type-label text-xs text-fg-2";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
@@ -71,9 +69,6 @@ export function DayCode({ code, size = "md" }: { code: string; size?: "md" | "lg
     </span>
   );
 }
-
-/** @deprecated Use DayCode. Removed in Task 11. */
-export const DayBadge = DayCode;
 
 /** The day's code for program sessions, a dumbbell for custom workouts. */
 export function SessionBadge({ dayCode }: { dayCode: string | null }) {

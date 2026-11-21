@@ -15,12 +15,6 @@
   --color-run: #4c8dff;
   --color-danger: #ff4d4d;
 
-  /* Legacy, removed in Task 11 once no screen uses them. */
-  --color-surface-2: #181815;
-  --color-accent-soft: rgb(255 90 31 / 0.14);
-  --color-accent-dim: rgb(255 90 31 / 0.45);
-  --color-run-soft: rgb(76 141 255 / 0.14);
-
   --animate-flash: flash 300ms ease-out;
   @keyframes flash {
     from {

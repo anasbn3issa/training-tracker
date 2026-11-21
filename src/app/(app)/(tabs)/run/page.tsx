@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useData } from "@/components/data-provider";
-import { Loading, PrimaryButton, ScreenTitle, card } from "@/components/ui";
+import { Loading, PrimaryButton, ScreenTitle } from "@/components/ui";
 import { buildRun, formatPace, type RunForm } from "@/lib/history";
 import { localIsoDate } from "@/lib/today";
 import type { Run } from "@/lib/types";
@@ -16,7 +16,7 @@ const KINDS: { value: Run["kind"]; label: string }[] = [
   { value: "race", label: "Race" },
 ];
 
-const inputClass = "h-14 w-full rounded-2xl border border-line bg-surface px-4 text-lg tabular-nums outline-none placeholder:text-fg-3 focus:border-accent";
+const inputClass = "h-14 w-full border-2 border-line bg-bg px-4 text-lg tabular-nums outline-none placeholder:text-fg-3 focus:border-accent";
 
 export default function LogRunPage() {
   const { ready } = useData();
@@ -77,14 +77,14 @@ function RunFormView() {
       <Field label="Duration">
         <div className="flex items-center gap-2">
           <input inputMode="numeric" placeholder="min" aria-label="Minutes" value={form.minutes} onChange={(e) => set({ minutes: e.target.value })} className={inputClass} />
-          <span className="text-2xl text-fg-3">:</span>
+          <span className="text-2xl text-fg-2">:</span>
           <input inputMode="numeric" placeholder="sec" aria-label="Seconds" value={form.seconds} onChange={(e) => set({ seconds: e.target.value })} className={inputClass} />
         </div>
       </Field>
 
-      <p className={`${card} flex items-baseline justify-between px-4 py-3`}>
-        <span className="text-xs font-semibold tracking-[0.08em] text-fg-3 uppercase">Pace</span>
-        <span className="text-2xl font-extrabold tabular-nums">{preview ? formatPace(preview.distance_km, preview.duration_sec) : "—"}</span>
+      <p className="flex items-baseline justify-between border-y border-line py-3">
+        <span className="type-label text-xs text-fg-2">Pace</span>
+        <span className="type-number text-[46px]">{preview ? formatPace(preview.distance_km, preview.duration_sec) : "—"}</span>
       </p>
 
       <Field label="Effort (1–10, optional)">
@@ -113,7 +113,7 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   if (htmlFor) {
     return (
       <div className="flex flex-col gap-2">
-        <label htmlFor={htmlFor} className="text-sm font-medium text-fg-2">
+        <label htmlFor={htmlFor} className="type-label text-xs text-fg-2">
           {label}
         </label>
         {children}
@@ -122,7 +122,7 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   }
   return (
     <div role="group" aria-label={label} className="flex flex-col gap-2">
-      <span className="text-sm font-medium text-fg-2">{label}</span>
+      <span className="type-label text-xs text-fg-2">{label}</span>
       {children}
     </div>
   );
@@ -134,7 +134,7 @@ function Choice({ selected, onClick, children }: { selected: boolean; onClick: (
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`h-12 rounded-[14px] text-base font-semibold ${selected ? "bg-run text-bg" : "border border-line bg-surface text-fg-2 active:bg-surface-2"}`}
+      className={`type-label h-12 px-1 text-[13px] ${selected ? "bg-run text-bg" : "border-2 border-line text-fg-2 active:bg-surface"}`}
     >
       {children}
     </button>
