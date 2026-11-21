@@ -3,15 +3,25 @@ import type { Tables } from "./database.types";
 export type Exercise = Tables<"exercises">;
 export type ProgramDay = Tables<"program_days">;
 export type ProgramExercise = Tables<"program_exercises">;
+/** One weekday of the active program's week. A weekday with no entry is a rest day. */
+export type ScheduleEntry = Pick<Tables<"program_schedule">, "weekday" | "day_id">;
+export type ProgramSummary = Pick<Tables<"programs">, "id" | "name" | "template_id">;
 // user_id never leaves the server: it comes from the login cookie, not from the client.
 export type Session = Omit<Tables<"sessions">, "user_id">;
 export type SetLog = Tables<"set_logs">;
 export type Run = Omit<Tables<"runs">, "user_id">;
 
-/** The shared program, the same for every user. */
+/** The user's program, plus what History needs to name sessions logged on earlier programs. */
 export type Program = {
+  /** null until the user has chosen a program (first login). */
+  active: ProgramSummary | null;
+  /** Days of every program the user has had, archived ones included. */
   days: ProgramDay[];
+  /** Prescriptions of those days. */
   prescriptions: ProgramExercise[];
+  /** The active program's week. */
+  schedule: ScheduleEntry[];
+  /** The whole exercise catalog. */
   exercises: Exercise[];
 };
 

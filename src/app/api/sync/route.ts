@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { currentUser, unauthorized } from "@/lib/current-user";
+import { ownsDay } from "@/lib/program-db";
 import { db } from "@/lib/supabase";
 import type { Op } from "@/lib/types";
 
@@ -8,18 +9,18 @@ const timestamp = z.iso.datetime({ offset: true });
 
 // No user_id in any schema: unknown keys are stripped, the owner always comes from the cookie.
 
-// A program day (A–D), or a custom workout identified by its title.
+// A program day, or a custom workout identified by its title.
 const session = z
   .object({
     id: z.uuid(),
-    day_code: z.string().nullable(),
+    day_id: z.uuid().nullable(),
     title: z.string().trim().min(1).max(80).nullable(),
     date: isoDate,
     block_week: z.int().min(1).max(6),
     notes: z.string().nullable(),
     completed_at: timestamp.nullable(),
   })
-  .refine((s) => s.day_code !== null || s.title !== null, "a session needs a day_code or a title");
+  .refine((s) => s.day_id !== null || s.title !== null, "a session needs a day_id or a title");
 
 const setLog = z.object({
   id: z.uuid(),
@@ -57,6 +58,30 @@ type OpError = { code?: string; message: string } | null;
 
 const FORBIDDEN: OpError = { code: "forbidden", message: "belongs to another user" };
 
+// Before per-user programs, sessions named their day by a global code (A–D). Phones may still hold
+// such ops in their outbox: they get the day with that code in the user's own program.
+// TODO: remove once every phone has synced past the programs migration.
+const legacySessionOp = z.object({
+  kind: z.literal("upsert"),
+  table: z.literal("sessions"),
+  row: z.looseObject({ day_code: z.string().nullable() }),
+});
+
+async function upgradeLegacy(supabase: Supabase, userId: string, raw: unknown): Promise<unknown> {
+  const legacy = legacySessionOp.safeParse(raw);
+  if (!legacy.success || "day_id" in legacy.data.row) return raw;
+  const { day_code, ...row } = legacy.data.row;
+  if (day_code === null) return { ...legacy.data, row: { ...row, day_id: null } };
+  const { data, error } = await supabase
+    .from("program_days")
+    .select("id, programs!program_days_program_id_fkey!inner(user_id, archived_at)")
+    .eq("code", day_code)
+    .eq("programs.user_id", userId);
+  if (error) throw new Error(error.message);
+  const day = data.find((d) => d.programs.archived_at === null) ?? data[0];
+  return { ...legacy.data, row: { ...row, day_id: day?.id ?? null } };
+}
+
 async function ownerOf(supabase: Supabase, table: "sessions" | "runs", id: string): Promise<string | null> {
   const { data } = await supabase.from(table).select("user_id").eq("id", id).maybeSingle();
   return data?.user_id ?? null;
@@ -87,6 +112,7 @@ async function execute(supabase: Supabase, userId: string, o: Op): Promise<OpErr
   switch (o.table) {
     case "sessions":
       if (!isMine(await ownerOf(supabase, "sessions", o.row.id))) return FORBIDDEN;
+      if (o.row.day_id !== null && !(await ownsDay(supabase, userId, o.row.day_id))) return FORBIDDEN;
       return (await supabase.from("sessions").upsert({ ...o.row, user_id: userId })).error;
     case "runs":
       if (!isMine(await ownerOf(supabase, "runs", o.row.id))) return FORBIDDEN;
@@ -115,7 +141,7 @@ export async function POST(request: Request) {
   const supabase = db();
   const { ops } = parsed.data;
   for (let i = 0; i < ops.length; i++) {
-    const valid = op.safeParse(ops[i]);
+    const valid = op.safeParse(await upgradeLegacy(supabase, userId, ops[i]));
     if (!valid.success) return Response.json({ applied: i, error: z.prettifyError(valid.error) }, { status: 422 });
     const error = await execute(supabase, userId, valid.data);
     if (error) {

@@ -3,9 +3,16 @@ import { buildRun, formatDuration, formatPace, historyItems, type RunForm } from
 import type { LogState, Program, Run, Session, SetLog } from "./types";
 
 const program: Program = {
+  active: { id: "p1", name: "Bro split", template_id: "t1" },
   days: [
-    { code: "A", name: "Chest + Triceps", weekday: 1 },
-    { code: "B", name: "Legs", weekday: 3 },
+    { id: "day-a", program_id: "p1", code: "A", name: "Chest + Triceps" },
+    { id: "day-b", program_id: "p1", code: "B", name: "Legs" },
+    // From a program the user switched away from: still names old sessions.
+    { id: "old-legs", program_id: "p0", code: "L", name: "Lower" },
+  ],
+  schedule: [
+    { weekday: 1, day_id: "day-a" },
+    { weekday: 3, day_id: "day-b" },
   ],
   exercises: [
     { id: "squat", name: "Squat", load_type: "barbell", increment_kg: 2.5 },
@@ -13,14 +20,14 @@ const program: Program = {
     { id: "old-move", name: "Old move", load_type: "machine", increment_kg: 2.5 },
   ],
   prescriptions: [
-    { id: 1, day_code: "B", position: 1, exercise_id: "squat", base_sets: 4, rep_low: 6, rep_high: 8, note: null },
-    { id: 2, day_code: "B", position: 2, exercise_id: "leg-press", base_sets: 4, rep_low: 10, rep_high: 12, note: null },
+    { id: 1, day_id: "day-b", position: 1, exercise_id: "squat", base_sets: 4, rep_low: 6, rep_high: 8, note: null },
+    { id: 2, day_id: "day-b", position: 2, exercise_id: "leg-press", base_sets: 4, rep_low: 10, rep_high: 12, note: null },
   ],
 };
 
-const session = (id: string, date: string, day_code = "B"): Session => ({
+const session = (id: string, date: string, day_id = "day-b"): Session => ({
   id,
-  day_code,
+  day_id,
   date,
   block_week: 5,
   notes: null,
@@ -69,11 +76,20 @@ describe("historyItems", () => {
 
 describe("historyItems: custom workouts", () => {
   it("uses the title as the name and has no exercises", () => {
-    const custom: Session = { ...session("x", "2026-10-25"), day_code: null, title: "Hyrox class", notes: "brutal" };
+    const custom: Session = { ...session("x", "2026-10-25"), day_id: null, title: "Hyrox class", notes: "brutal" };
     const [item] = historyItems({ sessions: [custom], setLogs: [], runs: [], blockStartDate: "2026-09-21" }, program);
     if (item.kind !== "session") throw new Error("expected a session");
     expect(item.dayName).toBe("Hyrox class");
+    expect(item.dayCode).toBeNull();
     expect(item.exercises).toEqual([]);
+  });
+});
+
+describe("historyItems: sessions of an earlier program", () => {
+  it("keeps the name and code of the archived program's day", () => {
+    const [item] = historyItems({ sessions: [session("old", "2026-09-01", "old-legs")], setLogs: [], runs: [], blockStartDate: "2026-09-21" }, program);
+    if (item.kind !== "session") throw new Error("expected a session");
+    expect([item.dayName, item.dayCode]).toEqual(["Lower", "L"]);
   });
 });
 

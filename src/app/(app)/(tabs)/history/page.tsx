@@ -78,11 +78,11 @@ function SessionRow({
   onDelete: () => void;
 }) {
   const setCount = item.exercises.reduce((n, e) => n + e.sets.length, 0);
-  const custom = item.session.day_code === null;
+  const custom = item.session.day_id === null;
   return (
     <li className={card}>
       <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 w-full items-center gap-3 p-3.5 text-left">
-        <SessionBadge dayCode={item.session.day_code} />
+        <SessionBadge dayCode={item.dayCode} />
         <span className="min-w-0 flex-1">
           <span className="block text-[17px] font-bold">{item.dayName}</span>
           <span className="mt-0.5 block text-[13px] text-fg-3">

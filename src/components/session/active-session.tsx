@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { dayPrescriptions } from "@/lib/program";
 import { findLastSets, suggest } from "@/lib/progression";
 import {
   REST_SECONDS,
@@ -33,14 +34,14 @@ const isBodyweight = (t: Exercise["load_type"]) => t === "bodyweight" || t === "
 
 export function ActiveSession({
   session,
-  dayCode,
+  dayId,
   program,
   log,
   apply,
 }: {
   session: Session;
-  /** The program day (A–D); custom workouts use CustomSession. */
-  dayCode: string;
+  /** The program day; custom workouts use CustomSession. */
+  dayId: string;
   program: Program;
   log: LogState;
   apply: (ops: Op[]) => void;
@@ -48,21 +49,19 @@ export function ActiveSession({
   useWakeLock();
   const router = useRouter();
 
-  const items = program.prescriptions
-    .filter((rx) => rx.day_code === dayCode)
-    .flatMap((rx) => {
-      const exercise = program.exercises.find((e) => e.id === rx.exercise_id);
-      if (!exercise) return [];
-      const last = findLastSets(log.sessions, log.setLogs, dayCode, rx.exercise_id);
-      return [
-        {
-          rx,
-          exercise,
-          suggestion: suggest({ ...rx, increment_kg: exercise.increment_kg }, session.block_week, last),
-          logged: setsLoggedFor(log.setLogs, session.id, rx.exercise_id),
-        },
-      ];
-    });
+  const items = dayPrescriptions(program, dayId).flatMap((rx) => {
+    const exercise = program.exercises.find((e) => e.id === rx.exercise_id);
+    if (!exercise) return [];
+    const last = findLastSets(log.sessions, log.setLogs, dayId, rx.exercise_id);
+    return [
+      {
+        rx,
+        exercise,
+        suggestion: suggest({ ...rx, increment_kg: exercise.increment_kg }, session.block_week, last),
+        logged: setsLoggedFor(log.setLogs, session.id, rx.exercise_id),
+      },
+    ];
+  });
 
   const [index, setIndex] = useState(() =>
     firstUnfinishedIndex(items.map((i) => ({ sets: i.suggestion.sets, logged: i.logged.length }))),
@@ -72,7 +71,7 @@ export function ActiveSession({
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const item = items[index];
-  if (!item) return <p className="p-4 text-fg-2">No exercises for day {dayCode}.</p>;
+  if (!item) return <p className="p-4 text-fg-2">No exercises for this day.</p>;
 
   const { rx, exercise, suggestion, logged } = item;
   const draft = drafts[exercise.id] ?? nextSetDefaults(suggestion, logged);

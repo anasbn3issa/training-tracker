@@ -108,7 +108,8 @@ export class SyncStore {
     const early = this.outbox; // applied (and not yet sent) while the cache was loading
     this.outbox = [...adopted, ...(outbox ?? []), ...early];
     this.loaded = true;
-    if (program && log) this.update({ program, log: applyOps(log, [...adopted, ...early]), ready: true });
+    // A program cached before per-user programs has no schedule, and its log has no day ids: wait for the first pull.
+    if (program?.schedule && log) this.update({ program, log: applyOps(log, [...adopted, ...early]), ready: true });
     else this.update({});
     this.persist();
     if (adopted.length > 0 && this.deps.legacyKv) {

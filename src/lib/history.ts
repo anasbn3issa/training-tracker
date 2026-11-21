@@ -6,6 +6,8 @@ export type HistoryItem =
       date: string;
       session: Session;
       dayName: string;
+      /** Badge label of the program day; null for a custom workout. */
+      dayCode: string | null;
       exercises: { id: string; name: string; loadType: Exercise["load_type"]; sets: SetLog[] }[];
     }
   | { kind: "run"; date: string; run: Run };
@@ -14,17 +16,17 @@ export type HistoryItem =
 export function historyItems(log: LogState, program: Program): HistoryItem[] {
   const sessions: HistoryItem[] = log.sessions.map((session) => {
     const position = (exerciseId: string) =>
-      program.prescriptions.find((p) => p.day_code === session.day_code && p.exercise_id === exerciseId)?.position ?? Infinity;
+      program.prescriptions.find((p) => p.day_id === session.day_id && p.exercise_id === exerciseId)?.position ?? Infinity;
     const sets = log.setLogs.filter((l) => l.session_id === session.id);
+    // Days of archived programs are still sent, so old sessions keep their name.
+    const day = session.day_id === null ? undefined : program.days.find((d) => d.id === session.day_id);
     const exerciseIds = [...new Set(sets.map((s) => s.exercise_id))].sort((a, b) => position(a) - position(b));
     return {
       kind: "session",
       date: session.date,
       session,
-      dayName:
-        session.day_code === null
-          ? (session.title ?? "Custom workout")
-          : (program.days.find((d) => d.code === session.day_code)?.name ?? session.day_code),
+      dayName: day ? day.name : (session.title ?? "Custom workout"),
+      dayCode: day?.code ?? null,
       exercises: exerciseIds.map((id) => {
         const exercise = program.exercises.find((e) => e.id === id);
         return {

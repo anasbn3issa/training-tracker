@@ -27,7 +27,7 @@ export async function GET() {
       fetchAll((from, to) =>
         supabase
           .from("sessions")
-          .select("id, day_code, title, date, block_week, notes, completed_at")
+          .select("id, day_id, title, date, block_week, notes, completed_at")
           .eq("user_id", userId)
           .order("id")
           .range(from, to),

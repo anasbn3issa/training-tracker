@@ -3,11 +3,11 @@ import { applyOps } from "./ops";
 import { SyncStore, type Kv, type KvSchema } from "./sync";
 import type { LogState, Op, Program, Run, Session, SetLog } from "./types";
 
-const program: Program = { days: [], prescriptions: [], exercises: [] };
+const program: Program = { active: null, days: [], prescriptions: [], schedule: [], exercises: [] };
 const START = "2026-09-21";
 const TODAY = "2026-10-26";
 
-const session: Session = { id: "s1", day_code: "A", date: TODAY, block_week: 5, notes: null, title: null, completed_at: null };
+const session: Session = { id: "s1", day_id: "day-a", date: TODAY, block_week: 5, notes: null, title: null, completed_at: null };
 const set = (id: string, reps = 10): SetLog => ({
   id,
   session_id: "s1",
@@ -222,6 +222,17 @@ describe("SyncStore: persistence and reload", () => {
     offline.mode = "up";
     await second.runRetries();
     expect(offline.state.setLogs).toEqual([set("x")]);
+  });
+
+  it("ignores a cache from before per-user programs until the first pull", async () => {
+    const kv = memoryKv();
+    Object.assign(kv.data, { program: { days: [], prescriptions: [], exercises: [] } });
+    kv.data.log = { sessions: [], setLogs: [], runs: [], blockStartDate: START };
+    const offline = fakeServer();
+    offline.mode = "down";
+    const { store } = setup(offline, kv);
+    await store.start();
+    expect(store.getSnapshot().ready).toBe(false);
   });
 
   it("first ever load needs the network", async () => {

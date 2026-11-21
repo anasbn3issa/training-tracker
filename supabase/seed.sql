@@ -1,6 +1,10 @@
--- The training program. This file is the program editor: change it here,
--- then re-run it. Every statement is an upsert so it is safe to re-run
+-- The exercise catalog and the program templates. This file is the template editor:
+-- change it here, then re-run it. Every statement is an upsert so it is safe to re-run
 -- against a database that already holds logged sessions.
+--
+-- Users train on their own copy of a template, made when they choose it. Editing a
+-- template here changes what the next users get, never an existing user's program.
+-- Exercises are never deleted: old sets point at them.
 
 insert into exercises (id, name, load_type, increment_kg) values
   -- Day A
@@ -37,45 +41,74 @@ on conflict (id) do update set
   load_type    = excluded.load_type,
   increment_kg = excluded.increment_kg;
 
-insert into program_days (code, name, weekday) values
-  ('A', 'Chest + Triceps',              1),
-  ('B', 'Legs',                         3),
-  ('C', 'Back + Biceps',                5),
-  ('D', 'Shoulders + Upper/Lower',      6)
-on conflict (code) do update set
-  name    = excluded.name,
-  weekday = excluded.weekday;
+-- Templates: programs with no owner, found by slug.
+insert into programs (slug, name) values
+  ('bro-split', 'Bro split')
+on conflict (slug) do update set name = excluded.name;
 
--- Nothing references program_exercises.id, so the prescription is simply
--- replaced wholesale.
-delete from program_exercises;
+-- code is the short label shown in the day badge; unique within a template.
+insert into program_days (program_id, code, name)
+select p.id, d.code, d.name
+from (values
+  ('bro-split', 'A', 'Chest + Triceps'),
+  ('bro-split', 'B', 'Legs'),
+  ('bro-split', 'C', 'Back + Biceps'),
+  ('bro-split', 'D', 'Shoulders + Upper/Lower')
+) as d (slug, code, name)
+join programs p on p.slug = d.slug
+on conflict (program_id, code) do update set name = excluded.name;
 
-insert into program_exercises (day_code, position, exercise_id, base_sets, rep_low, rep_high, note) values
-  ('A', 1, 'incline-db-press',           4,  8, 10, null),
-  ('A', 2, 'flat-db-press',              3, 10, 12, null),
-  ('A', 3, 'dips',                       3,  8, 12, null),
-  ('A', 4, 'cable-fly',                  3, 12, 15, null),
-  ('A', 5, 'overhead-cable-triceps-ext', 3, 10, 12, null),
-  ('A', 6, 'rope-pushdown',              3, 12, 15, null),
+-- Template prescriptions and weeks are replaced wholesale. Only templates (user_id is null):
+-- user copies belong to their users.
+delete from program_exercises where day_id in (
+  select d.id from program_days d join programs p on p.id = d.program_id where p.user_id is null
+);
 
-  ('B', 1, 'squat',                      4,  6,  8, null),
-  ('B', 2, 'leg-press',                  4, 10, 12, null),
-  ('B', 3, 'barbell-rdl',                3,  8, 10, null),
-  ('B', 4, 'seated-leg-curl',            3, 10, 12, null),
-  ('B', 5, 'leg-extension',              3, 12, 15, null),
-  ('B', 6, 'standing-calf-raise',        4, 10, 15, null),
+insert into program_exercises (day_id, position, exercise_id, base_sets, rep_low, rep_high, note)
+select d.id, x.position, x.exercise_id, x.base_sets, x.rep_low, x.rep_high, x.note
+from (values
+  ('bro-split', 'A', 1, 'incline-db-press',           4,  8, 10, null),
+  ('bro-split', 'A', 2, 'flat-db-press',              3, 10, 12, null),
+  ('bro-split', 'A', 3, 'dips',                       3,  8, 12, null),
+  ('bro-split', 'A', 4, 'cable-fly',                  3, 12, 15, null),
+  ('bro-split', 'A', 5, 'overhead-cable-triceps-ext', 3, 10, 12, null),
+  ('bro-split', 'A', 6, 'rope-pushdown',              3, 12, 15, null),
 
-  ('C', 1, 'pull-ups',                   4,  6, 10, null),
-  ('C', 2, 'chest-supported-row',        4, 10, 12, null),
-  ('C', 3, 'lat-pulldown',               3, 10, 12, null),
-  ('C', 4, 'back-extension',             3, 12, 15, null),
-  ('C', 5, 'rear-delt-fly',              3, 15, 20, null),
-  ('C', 6, 'incline-db-curl',            3, 10, 12, null),
-  ('C', 7, 'hammer-curl',                3, 10, 12, null),
+  ('bro-split', 'B', 1, 'squat',                      4,  6,  8, null),
+  ('bro-split', 'B', 2, 'leg-press',                  4, 10, 12, null),
+  ('bro-split', 'B', 3, 'barbell-rdl',                3,  8, 10, null),
+  ('bro-split', 'B', 4, 'seated-leg-curl',            3, 10, 12, null),
+  ('bro-split', 'B', 5, 'leg-extension',              3, 12, 15, null),
+  ('bro-split', 'B', 6, 'standing-calf-raise',        4, 10, 15, null),
 
-  ('D', 1, 'seated-ohp',                 4,  6, 10, null),
-  ('D', 2, 'db-lateral-raise',           4, 12, 20, null),
-  ('D', 3, 'machine-incline-press',      3, 10, 12, null),
-  ('D', 4, 'leg-press-or-split-squat',   3, 10, 12, '~80% of Wednesday'),
-  ('D', 5, 'seated-leg-curl',            3, 10, 12, '~80% of Wednesday'),
-  ('D', 6, 'hanging-leg-raise',          3, 10, 15, null);
+  ('bro-split', 'C', 1, 'pull-ups',                   4,  6, 10, null),
+  ('bro-split', 'C', 2, 'chest-supported-row',        4, 10, 12, null),
+  ('bro-split', 'C', 3, 'lat-pulldown',               3, 10, 12, null),
+  ('bro-split', 'C', 4, 'back-extension',             3, 12, 15, null),
+  ('bro-split', 'C', 5, 'rear-delt-fly',              3, 15, 20, null),
+  ('bro-split', 'C', 6, 'incline-db-curl',            3, 10, 12, null),
+  ('bro-split', 'C', 7, 'hammer-curl',                3, 10, 12, null),
+
+  ('bro-split', 'D', 1, 'seated-ohp',                 4,  6, 10, null),
+  ('bro-split', 'D', 2, 'db-lateral-raise',           4, 12, 20, null),
+  ('bro-split', 'D', 3, 'machine-incline-press',      3, 10, 12, null),
+  ('bro-split', 'D', 4, 'leg-press-or-split-squat',   3, 10, 12, '~80% of Wednesday'),
+  ('bro-split', 'D', 5, 'seated-leg-curl',            3, 10, 12, '~80% of Wednesday'),
+  ('bro-split', 'D', 6, 'hanging-leg-raise',          3, 10, 15, null)
+) as x (slug, code, position, exercise_id, base_sets, rep_low, rep_high, note)
+join programs p on p.slug = x.slug
+join program_days d on d.program_id = p.id and d.code = x.code;
+
+-- The default week offered when choosing a template (1 = Monday … 7 = Sunday). Users change theirs.
+delete from program_schedule where program_id in (select id from programs where user_id is null);
+
+insert into program_schedule (program_id, weekday, day_id)
+select p.id, w.weekday, d.id
+from (values
+  ('bro-split', 1, 'A'),
+  ('bro-split', 3, 'B'),
+  ('bro-split', 5, 'C'),
+  ('bro-split', 6, 'D')
+) as w (slug, weekday, code)
+join programs p on p.slug = w.slug
+join program_days d on d.program_id = p.id and d.code = w.code;
