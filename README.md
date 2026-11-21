@@ -1,6 +1,8 @@
 # Training Tracker
 
-Phone-first tracker for one fixed lifting program (4 days/week) plus runs.
+Phone-first tracker for lifting and runs. Each user picks a program (bro split, push/pull/legs,
+upper/lower or full body), sets their week, swaps exercises, and can switch programs later without
+losing their history. Lifting follows a 6-week block (week 6 is a deload) with double progression.
 Next.js (App Router) + Supabase Postgres + Tailwind.
 
 ## Local setup
@@ -34,24 +36,45 @@ RLS is enabled on every table with no policies, so the public keys can access no
 ## Database
 
 - Schema: `supabase/migrations/`
-- Program (exercises, days, prescriptions, block start date): `supabase/seed.sql`
+- Exercise catalog and program templates (days, exercises, default week): `supabase/seed.sql`
 
-The program is changed by editing `seed.sql`. The seed is safe to re-run on a database that
-already holds logged sessions:
+Templates are changed by editing `seed.sql`. Editing a template only changes what the next users
+get: existing users train on their own copy (see Programs). Exercises are never deleted, since old
+sets point at them. The seed is safe to re-run on a database that already holds logged sessions:
 
 ```bash
 psql "$DATABASE_URL" -f supabase/seed.sql
+# or, on the linked hosted project:
+npx supabase db query --linked -f supabase/seed.sql
 ```
 
 `npm run db:reset` rebuilds the **local** database from scratch (wipes logged data).
 After a schema change, regenerate the TypeScript types with `npm run db:types`.
 
+## Programs
+
+Templates and user programs share the same tables (`programs`, `program_days`, `program_exercises`,
+`program_schedule`). A template has no owner and a `slug`; a user's program is a copy of a template.
+
+- **First login**: a user without a program is sent to `/onboarding` to pick a template and their
+  week (weekday → day; a day can repeat, e.g. Push twice a week).
+- **Program page** (`/program`, sliders icon on Today): edit the week, swap/add/remove exercises from
+  the catalog (a swap keeps the slot's sets and reps, an added exercise gets 3 × 8–12), or change
+  program.
+- **Switching** (`choose_program` in the migration, one transaction): the current program is archived,
+  never deleted, and the block restarts at week 1. Switching back to a template brings back the
+  user's earlier copy, with its swaps and week.
+- **History**: sets point at an exercise and sessions at a day id, so old sessions keep their day
+  after a switch. The "last time" weights look at the same day first, then at any day, so they carry
+  over to a new program.
+- Program changes are online only (`/api/program/*`), unlike workouts which sync offline.
+
 ## Users
 
 Anyone signs in with Google (`src/app/api/auth`, OpenID Connect code flow + PKCE). The first
-sign-in creates their `users` row; each user only sees their own sessions, sets and runs, and the
-program is shared. Each user has their own block start (`users.block_start_date`, starting on the
-Monday of the week they sign up), changed by the −/+ on Today (saved).
+sign-in creates their `users` row; each user only sees their own program, sessions, sets and runs.
+Each user has their own block start (`users.block_start_date`, starting on the Monday of the week
+they sign up, reset when they switch programs), changed by the −/+ on Today (saved).
 
 A user is matched by `users.google_sub` (Google's account id). Users from before Google sign-in
 (`anas`, `atef`) keep their id and data: set their email once, by hand, and their first Google
@@ -98,6 +121,7 @@ ops on top (last write wins).
    npx supabase link --project-ref <project-ref>
    npx supabase db push --include-seed
    ```
+   After a change to `seed.sql` alone, re-run it with `npx supabase db query --linked -f supabase/seed.sql`.
 2. Vercel: import the GitHub repo, then set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GOOGLE_CLIENT_ID`,
    `GOOGLE_CLIENT_SECRET` and `AUTH_SECRET` for Production. Add `https://<domain>/api/auth/callback`
    to the OAuth client's redirect URIs. Every push to `main` deploys.
