@@ -4,23 +4,25 @@ import { ChevronLeftIcon, DumbbellIcon, RunIcon } from "./icons";
 
 export const eyebrow = "type-label text-xs text-fg-2";
 
+// `className` is for layout only (margins, alignment). Tailwind picks between two conflicting utilities by
+// their order in the CSS, not in the class string, so variants are props instead of className overrides.
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
 
-/** The one main action of a screen. `tall` for the workout screen. */
-export function PrimaryButton({ className = "", tall = false, ...props }: ButtonProps & { tall?: boolean }) {
+/** The one main action of a screen. `tall` for the workout screen, `stacked` for a label with a second line. */
+export function PrimaryButton({ className = "", tall = false, stacked = false, ...props }: ButtonProps & { tall?: boolean; stacked?: boolean }) {
   return (
     <button
-      className={`type-display flex ${tall ? "min-h-[72px]" : "min-h-16"} touch-manipulation items-center justify-center gap-2 bg-accent px-4 text-[28px] text-on-accent active:bg-accent-press disabled:bg-surface disabled:text-fg-3 ${className}`}
+      className={`type-display flex ${tall ? "min-h-[72px]" : "min-h-16"} ${stacked ? "flex-col gap-0.5" : "gap-2"} touch-manipulation items-center justify-center bg-accent px-4 text-[28px] text-on-accent active:bg-accent-press disabled:bg-surface disabled:text-fg-3 ${className}`}
       {...props}
     />
   );
 }
 
-/** Secondary actions: Change program, Another day. */
-export function OutlineButton({ className = "", ...props }: ButtonProps) {
+/** Secondary actions: Change program, Another day. `compact` for a button inside a row (Swap). */
+export function OutlineButton({ className = "", compact = false, ...props }: ButtonProps & { compact?: boolean }) {
   return (
     <button
-      className={`type-label flex h-[52px] touch-manipulation items-center justify-center border-2 border-fg px-4 text-base text-fg active:bg-surface disabled:border-line disabled:text-fg-3 ${className}`}
+      className={`type-label flex h-[52px] touch-manipulation items-center justify-center border-2 border-fg ${compact ? "px-3 text-sm" : "px-4 text-base"} text-fg active:bg-surface disabled:border-line disabled:text-fg-3 ${className}`}
       {...props}
     />
   );

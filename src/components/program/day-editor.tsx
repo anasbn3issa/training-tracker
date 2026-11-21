@@ -73,7 +73,7 @@ export function DayEditor({ program, day, onClose }: { program: Program; day: Pr
                 {r.note && ` · ${r.note}`}
               </span>
             </span>
-            <OutlineButton onClick={() => setPicking(i)} aria-label={`Swap ${name(r.exercise_id)}`} className="px-3 text-sm">
+            <OutlineButton onClick={() => setPicking(i)} aria-label={`Swap ${name(r.exercise_id)}`} compact>
               Swap
             </OutlineButton>
             <button
@@ -103,11 +103,10 @@ export function DayEditor({ program, day, onClose }: { program: Program; day: Pr
         <PrimaryButton onClick={save} disabled={!dirty || saving || !online}>
           {saving ? "Saving…" : `Save ${day.name}`}
         </PrimaryButton>
-        {dirty && (
-          <GhostButton onClick={onClose} disabled={saving}>
-            Discard changes
-          </GhostButton>
-        )}
+        {/* Also at the bottom, in thumb reach: the Back at the top is a stretch one-handed. */}
+        <GhostButton onClick={onClose} disabled={saving}>
+          {dirty ? "Discard changes" : "Back"}
+        </GhostButton>
       </div>
     </>
   );

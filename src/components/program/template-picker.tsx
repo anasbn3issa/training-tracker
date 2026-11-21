@@ -26,7 +26,7 @@ export function TemplatePicker({
           <li key={t.id}>
             <button
               onClick={() => onPick(t)}
-              aria-label={`${t.name}, ${days} days a week`}
+              aria-label={`${t.name}, ${days} days a week${usedBefore.includes(t.id) ? ", your version" : ""}`}
               aria-describedby={blurb ? `blurb-${t.id}` : undefined}
               className="flex w-full flex-col gap-2 border-t-[3px] border-fg pt-2.5 pb-4 text-left active:bg-surface"
             >

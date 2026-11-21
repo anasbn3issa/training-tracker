@@ -15,14 +15,15 @@ type Choice = { code: string | null; name: string };
 export function WeekEditor({ days, week, onChange }: { days: Day[]; week: Week; onChange: (week: Week) => void }) {
   // The code being placed; null places Rest.
   const [brush, setBrush] = useState<string | null>(days[0]?.code ?? null);
-  const [flashed, setFlashed] = useState<number | null>(null);
+  // The row that just got painted. `tick` changes on every paint, so painting the same row again replays the flash.
+  const [flash, setFlash] = useState<{ index: number; tick: number } | null>(null);
   const nameOf = (code: string | null) => days.find((d) => d.code === code)?.name ?? "Rest";
   const choices: Choice[] = [...days, { code: null, name: "Rest" }];
   const sessions = week.filter((c) => c !== null).length;
 
   function paint(index: number) {
     onChange(week.map((c, i) => (i === index ? brush : c)));
-    setFlashed(index);
+    setFlash((f) => ({ index, tick: (f?.tick ?? 0) + 1 }));
   }
 
   return (
@@ -41,8 +42,8 @@ export function WeekEditor({ days, week, onChange }: { days: Day[]; week: Week; 
               >
                 <span className="type-display w-12 text-[22px]">{weekday.slice(0, 3)}</span>
                 <span
-                  onAnimationEnd={() => setFlashed(null)}
-                  className={`flex items-center gap-2.5 text-[17px] ${code ? "type-name" : "text-fg-3"} ${flashed === i ? "motion-safe:animate-flash" : ""}`}
+                  key={flash?.index === i ? flash.tick : "still"}
+                  className={`flex items-center gap-2.5 text-[17px] ${code ? "type-name" : "text-fg-3"} ${flash?.index === i ? "motion-safe:animate-flash" : ""}`}
                 >
                   {code && <DayCode code={code} />}
                   {nameOf(code)}

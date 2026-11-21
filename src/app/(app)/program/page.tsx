@@ -95,11 +95,9 @@ export default function ProgramPage() {
           <PrimaryButton onClick={saveEditedWeek} disabled={!week || saving || planFromWeek(shown).length === 0 || !online}>
             {saving ? "Saving…" : "Save week"}
           </PrimaryButton>
-          {week && (
-            <GhostButton onClick={closeWeek} disabled={saving}>
-              Discard changes
-            </GhostButton>
-          )}
+          <GhostButton onClick={closeWeek} disabled={saving}>
+            {week ? "Discard changes" : "Back"}
+          </GhostButton>
         </div>
       </>,
     );

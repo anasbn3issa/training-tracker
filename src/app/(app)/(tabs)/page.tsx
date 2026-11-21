@@ -6,9 +6,10 @@ import { useState } from "react";
 import { BlockHeader } from "@/components/block/block-header";
 import { useData } from "@/components/data-provider";
 import { ChevronRightIcon } from "@/components/icons";
-import { DayCode, GhostButton, Loading, OutlineButton, PrimaryButton, RunBadge, SectionHead, SessionBadge, WeightUpTag } from "@/components/ui";
-import { activeDays, dayPrescriptions, formatWeekdays, scheduledDay, weekdaysOf } from "@/lib/program";
-import { blockWeek, findLastSets, setsForWeek, shiftBlockStart, suggest } from "@/lib/progression";
+import { TodayExercises } from "@/components/today-exercises";
+import { DayCode, GhostButton, Loading, OutlineButton, PrimaryButton, RunBadge, SectionHead, SessionBadge } from "@/components/ui";
+import { activeDays, scheduledDay } from "@/lib/program";
+import { blockWeek, shiftBlockStart } from "@/lib/progression";
 import { findInProgress, isoWeekday, localIsoDate, runKmLast7Days } from "@/lib/today";
 import type { ProgramDay } from "@/lib/types";
 import { currentUserName } from "@/lib/user-cookie";
@@ -32,14 +33,6 @@ export default function TodayPage() {
   const inProgress = findInProgress(log.sessions, today);
   const week = inProgress?.block_week ?? blockWeek(log.blockStartDate, today);
   const shownDay = program.days.find((d) => d.id === inProgress?.day_id) ?? scheduled;
-
-  // Same suggestion as the workout screen, so a weight going up shows here first.
-  const exercises = dayPrescriptions(program, shownDay?.id ?? null).map((p) => {
-    const exercise = program.exercises.find((e) => e.id === p.exercise_id);
-    const last = shownDay ? findLastSets(log.sessions, log.setLogs, shownDay.id, p.exercise_id) : [];
-    const advanced = exercise !== undefined && suggest({ ...p, increment_kg: exercise.increment_kg }, week, last).advanced;
-    return { ...p, name: exercise?.name ?? p.exercise_id, incrementKg: exercise?.increment_kg ?? 0, advanced };
-  });
 
   function startSession(target: { day_id: string; title: null } | { day_id: null; title: string }) {
     apply([
@@ -82,30 +75,7 @@ export default function TodayPage() {
           <SectionHead title={inProgress.title} meta="Custom · in progress" />
         </section>
       ) : shownDay ? (
-        <section>
-          <SectionHead
-            title={
-              <span className="flex items-center gap-2.5">
-                <DayCode code={shownDay.code} />
-                {shownDay.name}
-              </span>
-            }
-            meta={`${formatWeekdays(weekdaysOf(program, shownDay.id))} · ${exercises.length} lifts`}
-          />
-          <ul>
-            {exercises.map((e) => (
-              <li key={e.id} className="flex min-h-12 items-center justify-between gap-3 border-b border-line py-2 last:border-b-0">
-                <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="type-name text-[17px]">{e.name}</span>
-                  {e.advanced && <WeightUpTag kg={e.incrementKg} />}
-                </span>
-                <span className="shrink-0 text-[15px] font-medium text-fg-2 tabular-nums">
-                  {setsForWeek(e.base_sets, week)} × {e.rep_low}–{e.rep_high}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <TodayExercises program={program} log={log} day={shownDay} week={week} />
       ) : (
         <section>
           <SectionHead title="Rest day" />
@@ -130,7 +100,7 @@ export default function TodayPage() {
       {/* Sticks above the tab bar (56px + 3px rule) so the main action stays in thumb reach on long days. */}
       <div className="sticky bottom-[calc(59px+env(safe-area-inset-bottom))] -mx-4 mt-auto flex flex-col gap-2 bg-bg px-4 pt-3 pb-3">
         {inProgress ? (
-          <PrimaryButton tall onClick={() => router.push("/session")} className="flex-col gap-0.5">
+          <PrimaryButton tall stacked onClick={() => router.push("/session")}>
             Resume workout
             <span className="type-label text-[13px]">{inProgress.day_id === null ? inProgress.title : `${setsLogged} sets logged`}</span>
           </PrimaryButton>

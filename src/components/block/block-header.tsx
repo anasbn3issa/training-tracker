@@ -4,12 +4,14 @@ import { IconButton } from "../ui";
 import { BlockBar } from "./block-bar";
 import { PHASE_LABEL } from "./phase-label";
 
-// Only when there is something to know about next week.
-const NEXT_WEEK: Partial<Record<number, string>> = {
-  4: "Peak week next, then deload",
-  5: "Next week: deload",
-  6: "Block restarts at week 1 next week",
-};
+/** Only when there is something to know about next week. Derived from the phases, so it follows progression.ts. */
+function nextWeekNote(week: number): string | null {
+  if (blockPhase(week) === "deload") return "Block restarts at week 1 next week"; // the deload ends the block
+  const next = blockPhase(week + 1);
+  if (next === "deload") return "Next week: deload";
+  if (next === "peak") return "Peak week next, then deload";
+  return null;
+}
 
 /**
  * Where you are in the block and what this week asks of you.
@@ -17,7 +19,7 @@ const NEXT_WEEK: Partial<Record<number, string>> = {
  */
 export function BlockHeader({ week, onChangeWeek }: { week: number; onChangeWeek?: (delta: 1 | -1) => void }) {
   const deload = blockPhase(week) === "deload";
-  const next = NEXT_WEEK[week];
+  const next = nextWeekNote(week);
   return (
     <section aria-label="Training block" className="flex flex-col">
       <BlockBar week={week} />

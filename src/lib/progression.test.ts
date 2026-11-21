@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockPhase, blockWeek, findLastSets, shiftBlockStart, suggest, type LoggedSet, type Prescription } from "./progression";
+import { blockPhase, blockWeek, findLastSets, shiftBlockStart, suggest, suggestionFor, type LoggedSet, type Prescription } from "./progression";
 
 // 4 x 8-10, like Incline DB press.
 const incline: Prescription = { base_sets: 4, rep_low: 8, rep_high: 10, increment_kg: 2.5 };
@@ -222,5 +222,22 @@ describe("shiftBlockStart", () => {
 describe("blockPhase", () => {
   it("maps the six weeks to ramp, build, peak and deload", () => {
     expect([1, 2, 3, 4, 5, 6].map(blockPhase)).toEqual(["ramp", "ramp", "build", "build", "peak", "deload"]);
+  });
+});
+
+describe("suggestionFor", () => {
+  const sessions = [{ id: "a1", day_id: "A", date: "2026-11-16", completed_at: "2026-11-16T19:00:00Z" }];
+  const setLogs = [1, 2, 3].map((set_index) => ({ session_id: "a1", exercise_id: "ohp", set_index, weight_kg: 40, reps: 10 }));
+  const rx = { exercise_id: "ohp", base_sets: 4, rep_low: 6, rep_high: 10 };
+
+  it("suggests from the day's last session with the exercise's increment", () => {
+    const s = suggestionFor({ sessions, setLogs }, "A", rx, 2.5, 3);
+    expect(s.advanced).toBe(true);
+    expect(s.weightKg).toBe(42.5);
+    expect(s.sets).toBe(4);
+  });
+
+  it("never advances in the deload week", () => {
+    expect(suggestionFor({ sessions, setLogs }, "A", rx, 2.5, 6).advanced).toBe(false);
   });
 });

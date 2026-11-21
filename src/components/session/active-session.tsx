@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { dayPrescriptions } from "@/lib/program";
-import { blockPhase, findLastSets, suggest } from "@/lib/progression";
+import { blockPhase, suggestionFor } from "@/lib/progression";
 import {
   REST_SECONDS,
   WEIGHT_FINE_STEP_KG,
@@ -52,12 +52,11 @@ export function ActiveSession({
   const items = dayPrescriptions(program, dayId).flatMap((rx) => {
     const exercise = program.exercises.find((e) => e.id === rx.exercise_id);
     if (!exercise) return [];
-    const last = findLastSets(log.sessions, log.setLogs, dayId, rx.exercise_id);
     return [
       {
         rx,
         exercise,
-        suggestion: suggest({ ...rx, increment_kg: exercise.increment_kg }, session.block_week, last),
+        suggestion: suggestionFor(log, dayId, rx, exercise.increment_kg, session.block_week),
         logged: setsLoggedFor(log.setLogs, session.id, rx.exercise_id),
       },
     ];
