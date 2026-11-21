@@ -1,6 +1,7 @@
 import { applyOps, upgradeLegacyOps } from "./ops";
 import { staleSessionOps } from "./today";
 import type { LogState, Op, Program } from "./types";
+import { SYNC_BATCH_MAX } from "./limits";
 
 // Offline-first store. Every write lands in local state and IndexedDB first,
 // then an outbox of ops is sent to /api/sync in the background with retry.
@@ -33,7 +34,7 @@ export type Snapshot = {
   ready: boolean;
 };
 
-const BATCH = 100;
+const BATCH = SYNC_BATCH_MAX;
 const FIRST_RETRY_MS = 2_000;
 const MAX_RETRY_MS = 30_000;
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { currentUser, unauthorized } from "@/lib/current-user";
 import { ownsDay } from "@/lib/program-db";
+import { NOTES_MAX, SYNC_BATCH_MAX } from "@/lib/limits";
 import { isoDate } from "@/lib/schemas";
 import { db, isPermanentDbError } from "@/lib/supabase";
 import type { Op } from "@/lib/types";
@@ -17,7 +18,7 @@ const session = z
     title: z.string().trim().min(1).max(80).nullable(),
     date: isoDate,
     block_week: z.int().min(1).max(6),
-    notes: z.string().nullable(),
+    notes: z.string().max(NOTES_MAX).nullable(),
     completed_at: timestamp.nullable(),
   })
   .refine((s) => s.day_id !== null || s.title !== null, "a session needs a day_id or a title");
@@ -25,10 +26,11 @@ const session = z
 const setLog = z.object({
   id: z.uuid(),
   session_id: z.uuid(),
-  exercise_id: z.string(),
-  set_index: z.int().min(1),
-  weight_kg: z.number().min(0).nullable(),
-  reps: z.int().min(0),
+  exercise_id: z.string().max(64),
+  // Generous ceilings: they only stop absurd values, never a real set or run.
+  set_index: z.int().min(1).max(100),
+  weight_kg: z.number().min(0).max(1000).nullable(),
+  reps: z.int().min(0).max(1000),
   done_at: timestamp,
 });
 
@@ -36,10 +38,10 @@ const run = z.object({
   id: z.uuid(),
   date: isoDate,
   kind: z.enum(["easy", "long", "intervals", "race"]),
-  distance_km: z.number().positive(),
-  duration_sec: z.int().positive(),
+  distance_km: z.number().positive().max(1000),
+  duration_sec: z.int().positive().max(7 * 24 * 3600),
   effort: z.int().min(1).max(10).nullable(),
-  notes: z.string().nullable(),
+  notes: z.string().max(NOTES_MAX).nullable(),
 });
 
 const op = z.union([
@@ -51,7 +53,7 @@ const op = z.union([
 ]);
 
 // Ops are validated one by one, so a single bad op is reported at its exact index.
-const body = z.object({ ops: z.array(z.unknown()) });
+const body = z.object({ ops: z.array(z.unknown()).max(SYNC_BATCH_MAX) });
 
 type Supabase = ReturnType<typeof db>;
 type OpError = { code?: string; message: string } | null;
@@ -137,7 +139,7 @@ export async function POST(request: Request) {
   if (!userId) return unauthorized();
 
   const parsed = body.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return Response.json({ applied: 0, error: "body must be { ops: [...] }" }, { status: 400 });
+  if (!parsed.success) return Response.json({ applied: 0, error: `body must be { ops: [...] } with at most ${SYNC_BATCH_MAX} ops` }, { status: 400 });
 
   const supabase = db();
   const { ops } = parsed.data;

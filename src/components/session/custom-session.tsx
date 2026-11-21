@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BackLink, PrimaryButton } from "../ui";
+import { NOTES_MAX } from "@/lib/limits";
 import type { Op, Session } from "@/lib/types";
 
 const SAVE_DELAY_MS = 800;
@@ -58,6 +59,7 @@ export function CustomSession({ session, apply }: { session: Session; apply: (op
         </label>
         <textarea
           id="custom-notes"
+          maxLength={NOTES_MAX}
           rows={6}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
