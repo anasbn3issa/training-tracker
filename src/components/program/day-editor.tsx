@@ -4,14 +4,16 @@ import { useState } from "react";
 import { addExercise, dayPrescriptions, editableDay, removeExercise, swapExercise } from "@/lib/program";
 import { RELOAD_FAILED, failureMessage, saveDayExercises } from "@/lib/program-api";
 import type { Program, ProgramDay } from "@/lib/types";
+import { useOnline } from "@/lib/use-online";
 import { useData } from "../data-provider";
 import { XIcon } from "../icons";
-import { DayBadge, GhostButton, PrimaryButton, card } from "../ui";
+import { BackButton, DayCode, GhostButton, OfflineNotice, OutlineButton, PrimaryButton, ScreenTitle } from "../ui";
 import { ExercisePicker } from "./exercise-picker";
 
 /** Swap, add or remove a day's exercises. Sets and reps come from the slot (or 3 × 8–12 for an added one). */
 export function DayEditor({ program, day, onClose }: { program: Program; day: ProgramDay; onClose: () => void }) {
   const { refresh } = useData();
+  const online = useOnline();
   const [rows, setRows] = useState(() => editableDay(dayPrescriptions(program, day.id)));
   // null: the list; "add": picking an exercise to add; a number: picking the replacement for that row.
   const [picking, setPicking] = useState<"add" | number | null>(null);
@@ -53,46 +55,59 @@ export function DayEditor({ program, day, onClose }: { program: Program; day: Pr
 
   return (
     <>
+      <BackButton onClick={onClose} disabled={saving}>
+        Your program
+      </BackButton>
       <div className="flex items-center gap-3">
-        <DayBadge code={day.code} />
-        <h1 className="text-[28px] leading-tight font-extrabold tracking-tight">{day.name}</h1>
+        <DayCode code={day.code} size="lg" />
+        <ScreenTitle>{day.name}</ScreenTitle>
       </div>
-      <ul className={`${card} divide-y divide-line`}>
+      {!online && <OfflineNotice />}
+      <ul className="border-t-[3px] border-fg">
         {rows.map((r, i) => (
-          <li key={r.exercise_id} className="flex items-center gap-2 py-1.5 pr-1.5 pl-4">
+          <li key={r.exercise_id} className="flex min-h-[62px] items-center gap-2 border-b border-line py-1.5">
             <span className="min-w-0 flex-1">
-              <span className="block font-semibold">{name(r.exercise_id)}</span>
-              <span className="block text-[13px] text-fg-3 tabular-nums">
+              <span className="type-name block text-[17px]">{name(r.exercise_id)}</span>
+              <span className="block text-[13px] text-fg-2 tabular-nums">
                 {r.base_sets} × {r.rep_low}–{r.rep_high}
                 {r.note && ` · ${r.note}`}
               </span>
             </span>
-            <GhostButton onClick={() => setPicking(i)} className="text-accent">
+            <OutlineButton onClick={() => setPicking(i)} aria-label={`Swap ${name(r.exercise_id)}`} className="px-3 text-sm">
               Swap
-            </GhostButton>
+            </OutlineButton>
             <button
               aria-label={`Remove ${name(r.exercise_id)}`}
               onClick={() => edit(removeExercise(rows, i))}
               disabled={rows.length === 1}
-              className="grid size-11 place-items-center rounded-xl text-fg-3 active:bg-surface-2 disabled:opacity-30"
+              className="grid size-12 shrink-0 place-items-center text-fg-2 active:bg-surface disabled:opacity-30"
             >
               <XIcon className="size-5" />
             </button>
           </li>
         ))}
       </ul>
-      <GhostButton onClick={() => setPicking("add")} className="self-start text-accent">
+      <button
+        onClick={() => setPicking("add")}
+        className="type-label flex h-14 items-center justify-center border-2 border-dashed border-fg-3 text-base text-fg active:bg-surface"
+      >
         + Add exercise
-      </GhostButton>
-      <p className="text-[13px] text-fg-3">Past sessions keep what you did. Weights carry over to a swapped-in exercise you have logged before.</p>
-      {error && <p className="text-[15px] text-danger">{error}</p>}
+      </button>
+      <p className="text-[13px] text-fg-2">Past sessions keep what you did. A swapped-in lift you&apos;ve logged before keeps its weight.</p>
+      {error && (
+        <p role="alert" className="text-[15px] text-danger">
+          {error}
+        </p>
+      )}
       <div className="mt-auto flex flex-col gap-2">
-        <PrimaryButton onClick={save} disabled={!dirty || saving}>
-          {saving ? "Saving…" : "Save day"}
+        <PrimaryButton onClick={save} disabled={!dirty || saving || !online}>
+          {saving ? "Saving…" : `Save ${day.name}`}
         </PrimaryButton>
-        <GhostButton onClick={onClose} disabled={saving}>
-          {dirty ? "Discard changes" : "Back"}
-        </GhostButton>
+        {dirty && (
+          <GhostButton onClick={onClose} disabled={saving}>
+            Discard changes
+          </GhostButton>
+        )}
       </div>
     </>
   );
