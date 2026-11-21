@@ -10,6 +10,8 @@ import type { Op } from "@/lib/types";
 type Data = Snapshot & {
   /** Applies writes to local state and IndexedDB immediately; syncs in the background. */
   apply: (ops: Op[]) => void;
+  /** Re-reads program and log from the server (after choosing or editing the program). */
+  refresh: () => Promise<void>;
 };
 
 const DataContext = createContext<Data | null>(null);
@@ -46,7 +48,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, [store]);
 
-  return <DataContext value={{ ...snapshot, apply: store.apply }}>{children}</DataContext>;
+  return <DataContext value={{ ...snapshot, apply: store.apply, refresh: store.refresh }}>{children}</DataContext>;
 }
 
 export function useData(): Data {

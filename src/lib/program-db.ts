@@ -22,7 +22,7 @@ const SELECT = `id, name, slug, template_id, archived_at,
 
 /** Programs with their days, prescriptions and week: the user's own (`userId`), or the templates (null). */
 export async function loadPrograms(supabase: Supabase, userId: string | null): Promise<StoredProgram[]> {
-  const query = supabase.from("programs").select(SELECT).order("created_at");
+  const query = supabase.from("programs").select(SELECT).order("created_at").order("name");
   const { data, error } = await (userId === null ? query.is("user_id", null) : query.eq("user_id", userId));
   if (error) throw new Error(error.message);
   return data.map(({ program_days, program_schedule, ...program }) => ({
@@ -40,6 +40,33 @@ export async function ownsDay(supabase: Supabase, userId: string, dayId: string)
     .select("id, programs!program_days_program_id_fkey!inner(user_id)")
     .eq("id", dayId)
     .eq("programs.user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data !== null;
+}
+
+/** The user's active program id, or null before they chose one. */
+export async function activeProgramId(supabase: Supabase, userId: string): Promise<string | null> {
+  const { data, error } = await supabase.from("programs").select("id").eq("user_id", userId).is("archived_at", null).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.id ?? null;
+}
+
+/** Response for a failed program write: 422 when the data can never be accepted, 500 otherwise. */
+export function writeFailed(error: { code?: string; message: string }): Response {
+  // Postgres classes 22 (data exception) and 23 (integrity violation) won't fix themselves.
+  const permanent = error.code?.startsWith("22") || error.code?.startsWith("23");
+  return Response.json({ error: error.message }, { status: permanent ? 422 : 500 });
+}
+
+/** True when the day belongs to the user's active program (the only one they can edit). */
+export async function ownsActiveDay(supabase: Supabase, userId: string, dayId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("program_days")
+    .select("id, programs!program_days_program_id_fkey!inner(user_id, archived_at)")
+    .eq("id", dayId)
+    .eq("programs.user_id", userId)
+    .is("programs.archived_at", null)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data !== null;

@@ -72,6 +72,9 @@ export class SyncStore {
     this.sync();
   };
 
+  /** Re-reads program and log from the server, after a program change made online. */
+  refresh = () => this.exclusive(() => this.pull());
+
   /** Try to send the outbox now (on load, when back online, when the app returns to the foreground). */
   sync = () => {
     if (this.flushQueued) return;

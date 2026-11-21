@@ -78,3 +78,13 @@ export const UndoIcon = (p: P) => (
     <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
   </Icon>
 );
+export const SlidersIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
+  </Icon>
+);
+export const XIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </Icon>
+);

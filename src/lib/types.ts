@@ -25,6 +25,24 @@ export type Program = {
   exercises: Exercise[];
 };
 
+/** A program to choose from, with its default week. */
+export type Template = {
+  id: string;
+  name: string;
+  days: ProgramDay[];
+  prescriptions: ProgramExercise[];
+  schedule: ScheduleEntry[];
+};
+
+/** One exercise of a day as edited in the app, in order. */
+export type DayExercise = Pick<ProgramExercise, "exercise_id" | "base_sets" | "rep_low" | "rep_high" | "note">;
+
+/** A week as edited on screen: index 0 = Monday … 6 = Sunday, each the code of a day or null for rest. */
+export type Week = (string | null)[];
+
+/** A week as sent to the server: only the training weekdays, each naming its day by code. */
+export type WeekPlan = { weekday: number; code: string }[];
+
 /** Everything one user logged, plus their block start. Pulled from the server, mutated locally through ops. */
 export type LogState = {
   sessions: Session[];
