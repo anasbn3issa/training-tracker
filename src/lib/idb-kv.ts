@@ -33,3 +33,6 @@ export function idbKv(dbName: () => string): Kv {
     },
   };
 }
+
+/** The offline cache of one user: one IndexedDB database each, so a shared phone never mixes their data. */
+export const userCacheName = (userId: string | null) => `training-tracker-${userId}`;

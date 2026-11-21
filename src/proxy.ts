@@ -11,7 +11,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except the login page/endpoint, Next's static assets and the PWA files
-  // (the browser fetches the manifest and icons without cookies).
-  matcher: ["/((?!login|api/auth|_next/static|_next/image|favicon.ico|icon.svg|icons/|manifest.webmanifest|sw.js).*)"],
+  // Everything except the login page/endpoint, the public privacy page, Next's static assets and the PWA
+  // files (the browser fetches the manifest and icons without cookies).
+  matcher: ["/((?!login|privacy|api/auth|_next/static|_next/image|favicon.ico|icon.svg|icons/|manifest.webmanifest|sw.js).*)"],
 };

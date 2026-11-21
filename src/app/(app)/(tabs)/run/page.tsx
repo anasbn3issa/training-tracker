@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { useData } from "@/components/data-provider";
 import { Loading, PrimaryButton, ScreenTitle } from "@/components/ui";
 import { buildRun, formatPace, type RunForm } from "@/lib/history";
+import { NOTES_MAX } from "@/lib/limits";
 import { localIsoDate } from "@/lib/today";
 import type { Run } from "@/lib/types";
 import { uuid } from "@/lib/uuid";
@@ -98,7 +99,7 @@ function RunFormView() {
       </Field>
 
       <Field label="Notes" htmlFor="run-notes">
-        <textarea id="run-notes" rows={3} value={form.notes} onChange={(e) => set({ notes: e.target.value })} className={`${inputClass} h-auto py-3`} />
+        <textarea id="run-notes" rows={3} maxLength={NOTES_MAX} value={form.notes} onChange={(e) => set({ notes: e.target.value })} className={`${inputClass} h-auto py-3`} />
       </Field>
 
       <PrimaryButton onClick={save} disabled={!preview}>

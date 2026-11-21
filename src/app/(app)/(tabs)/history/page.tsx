@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useData } from "@/components/data-provider";
+import { DeleteButton } from "@/components/delete-button";
 import { ChevronDownIcon } from "@/components/icons";
 import { Loading, RunBadge, ScreenTitle, SessionBadge } from "@/components/ui";
 import { formatDuration, formatPace, historyItems, type HistoryItem } from "@/lib/history";
@@ -111,26 +112,4 @@ function SessionRow({
 
 function Chevron({ open }: { open: boolean }) {
   return <ChevronDownIcon className={`size-5 shrink-0 text-fg-2 motion-safe:transition-transform ${open ? "rotate-180" : ""}`} />;
-}
-
-const ARM_MS = 3000;
-
-/** Two taps instead of a confirmation dialog: the first arms it for 3 s, the second deletes. */
-function DeleteButton({ label, onConfirm }: { label: string; onConfirm: () => void }) {
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) return;
-    const id = setTimeout(() => setArmed(false), ARM_MS);
-    return () => clearTimeout(id);
-  }, [armed]);
-
-  return (
-    <button
-      onClick={() => (armed ? onConfirm() : setArmed(true))}
-      className={`type-label mt-1 h-12 text-sm ${armed ? "bg-danger text-bg" : "border-2 border-danger text-danger active:bg-surface"}`}
-    >
-      {armed ? "Tap again to delete" : label}
-    </button>
-  );
 }

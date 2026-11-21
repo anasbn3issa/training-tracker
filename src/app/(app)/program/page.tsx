@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useData } from "@/components/data-provider";
@@ -150,6 +151,9 @@ export default function ProgramPage() {
       <div className="mt-auto flex flex-col gap-2">
         <p className="text-[13px] text-fg-2">Switching keeps your history and weights. The 6-week block restarts at week 1.</p>
         <OutlineButton onClick={() => setView({ kind: "change" })}>Change program</OutlineButton>
+        <Link href="/account" className="flex h-12 items-center justify-center text-[15px] font-medium text-fg-2">
+          Your account
+        </Link>
       </div>
     </>,
   );

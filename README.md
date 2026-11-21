@@ -29,6 +29,7 @@ Supabase Studio (local DB browser) runs at http://127.0.0.1:54323.
 | `GOOGLE_CLIENT_ID`    | Google OAuth client id (web application) |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `AUTH_SECRET`         | Signs the login cookies (`openssl rand -base64 32`). Rotating it logs every device out |
+| `PRIVACY_CONTACT`     | Email shown on `/privacy` for data requests. Set it in production |
 
 The browser never talks to Supabase directly: all reads/writes go through `/api/*` route handlers.
 RLS is enabled on every table with no policies, so the public keys can access nothing.
@@ -84,6 +85,16 @@ sign-in with that verified email links the row. Emails are never committed (the 
 update users set email = lower('<their gmail>') where id = 'anas';
 ```
 
+Anyone can sign up, so a few guards stand between one account and everyone else's data and quota:
+
+- **Block** one account without logging everyone out: `update users set disabled_at = now() where id = '<id>';`
+  Their cookie stops working on the next request and Google sign-in refuses them (`currentUser()`).
+- **Delete**: `/account` (from the program page) calls `delete_user()`, which removes the user and all
+  they own in one transaction; the login page then clears that user's offline copy on the phone.
+- **Limits** (`src/lib/limits.ts`): 100 ops per `/api/sync` request, 2000 synced ops per user per day
+  (`use_sync_budget`, answered with 429 and retried by the phone), notes trimmed to 2000 characters.
+- **Privacy**: `/privacy` is public; its contact comes from `PRIVACY_CONTACT`.
+
 Google only accepts plain-http redirect URIs on `localhost`, so signing in from a phone against the
 laptop (`http://<laptop-ip>`) doesn't work: use a Vercel preview or an HTTPS tunnel.
 
@@ -93,6 +104,7 @@ laptop (`http://<laptop-ip>`) doesn't work: use a Vercel preview or an HTTPS tun
 | ------------------ | ------------------------------------- |
 | `npm run dev`      | Next.js dev server                    |
 | `npm test`         | Unit tests (Vitest)                   |
+| `npm run test:db`  | Database tests against local Supabase (`.env.local`) |
 | `npm run db:start` | Start local Supabase                  |
 | `npm run db:stop`  | Stop local Supabase                   |
 | `npm run db:reset` | Recreate local DB (migrations + seed) |
@@ -116,13 +128,16 @@ ops on top (last write wins).
 
 ## Deploy (Vercel + hosted Supabase)
 
-1. Hosted DB (once, and after each new migration):
+1. Hosted DB (once, and after each new migration). **Apply a migration before merging the code that
+   uses it**: every push to `main` deploys, so migrations must stay compatible with the code already live.
    ```bash
    npx supabase link --project-ref <project-ref>
    npx supabase db push --include-seed
    ```
    After a change to `seed.sql` alone, re-run it with `npx supabase db query --linked -f supabase/seed.sql`.
 2. Vercel: import the GitHub repo, then set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GOOGLE_CLIENT_ID`,
-   `GOOGLE_CLIENT_SECRET` and `AUTH_SECRET` for Production. Add `https://<domain>/api/auth/callback`
+   `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET` and `PRIVACY_CONTACT` for Production. Add `https://<domain>/api/auth/callback`
    to the OAuth client's redirect URIs. Every push to `main` deploys.
 3. Functions run in `dub1` (Dublin, `vercel.json`), next to the Supabase project in `eu-west-1`.
+4. Google Cloud Console, OAuth consent screen: set the privacy policy URL to `https://<domain>/privacy`,
+   then publish the app ("In production") so any Google account can sign in.

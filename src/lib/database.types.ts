@@ -338,9 +338,37 @@ export type Database = {
           },
         ];
       };
+      sync_usage: {
+        Row: {
+          day: string;
+          ops: number;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          day: string;
+          ops: number;
+          user_id: string;
+        };
+        Update: {
+          day?: string;
+          ops?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sync_usage_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       users: {
         Row: {
           block_start_date: string;
+          disabled_at: string | null;
           email: string | null;
           google_sub: string | null;
           id: string;
@@ -349,6 +377,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           block_start_date?: string;
+          disabled_at?: string | null;
           email?: string | null;
           google_sub?: string | null;
           id: string;
@@ -356,6 +385,7 @@ export type Database = {
         };
         Update: {
           block_start_date?: string;
+          disabled_at?: string | null;
           email?: string | null;
           google_sub?: string | null;
           id?: string;
@@ -370,8 +400,10 @@ export type Database = {
     Functions: {
       choose_program: { Args: { p_block_start: string; p_schedule: Json; p_template: string; p_user: string }; Returns: string };
       copy_program: { Args: { p_template: string; p_user: string }; Returns: string };
+      delete_user: { Args: { p_user: string }; Returns: undefined };
       set_day_exercises: { Args: { p_day: string; p_rows: Json }; Returns: undefined };
       set_schedule: { Args: { p_program: string; p_schedule: Json }; Returns: undefined };
+      use_sync_budget: { Args: { p_limit: number; p_ops: number; p_user: string }; Returns: boolean };
     };
     Enums: {
       load_type: "barbell" | "dumbbell_per_hand" | "machine" | "bodyweight" | "bodyweight_plus";

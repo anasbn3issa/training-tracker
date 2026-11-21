@@ -1,62 +1,28 @@
 import { z } from "zod";
 import { currentUser, unauthorized } from "@/lib/current-user";
 import { ownsDay } from "@/lib/program-db";
-import { isoDate } from "@/lib/schemas";
+import { SYNC_BATCH_MAX, SYNC_DAILY_OPS_MAX } from "@/lib/limits";
 import { db, isPermanentDbError } from "@/lib/supabase";
+import { syncBody, syncOp } from "@/lib/sync-schema";
 import type { Op } from "@/lib/types";
-
-const timestamp = z.iso.datetime({ offset: true });
-
-// No user_id in any schema: unknown keys are stripped, the owner always comes from the cookie.
-
-// A program day, or a custom workout identified by its title.
-const session = z
-  .object({
-    id: z.uuid(),
-    day_id: z.uuid().nullable(),
-    title: z.string().trim().min(1).max(80).nullable(),
-    date: isoDate,
-    block_week: z.int().min(1).max(6),
-    notes: z.string().nullable(),
-    completed_at: timestamp.nullable(),
-  })
-  .refine((s) => s.day_id !== null || s.title !== null, "a session needs a day_id or a title");
-
-const setLog = z.object({
-  id: z.uuid(),
-  session_id: z.uuid(),
-  exercise_id: z.string(),
-  set_index: z.int().min(1),
-  weight_kg: z.number().min(0).nullable(),
-  reps: z.int().min(0),
-  done_at: timestamp,
-});
-
-const run = z.object({
-  id: z.uuid(),
-  date: isoDate,
-  kind: z.enum(["easy", "long", "intervals", "race"]),
-  distance_km: z.number().positive(),
-  duration_sec: z.int().positive(),
-  effort: z.int().min(1).max(10).nullable(),
-  notes: z.string().nullable(),
-});
-
-const op = z.union([
-  z.object({ kind: z.literal("upsert"), table: z.literal("sessions"), row: session }),
-  z.object({ kind: z.literal("upsert"), table: z.literal("set_logs"), row: setLog }),
-  z.object({ kind: z.literal("upsert"), table: z.literal("runs"), row: run }),
-  z.object({ kind: z.literal("delete"), table: z.enum(["sessions", "set_logs", "runs"]), id: z.uuid() }),
-  z.object({ kind: z.literal("set_block_start"), date: isoDate }),
-]);
-
-// Ops are validated one by one, so a single bad op is reported at its exact index.
-const body = z.object({ ops: z.array(z.unknown()) });
 
 type Supabase = ReturnType<typeof db>;
 type OpError = { code?: string; message: string } | null;
 
 const FORBIDDEN: OpError = { code: "forbidden", message: "belongs to another user" };
+
+/** PostgREST "function not found": the code runs before the migration that adds use_sync_budget. */
+const UNKNOWN_FUNCTION = "PGRST202";
+
+/** Counts `count` ops against the user's daily budget (see use_sync_budget); "error" if it couldn't be checked. */
+async function withinDailyBudget(supabase: Supabase, userId: string, count: number): Promise<boolean | "error"> {
+  if (count === 0) return true;
+  const { data, error } = await supabase.rpc("use_sync_budget", { p_user: userId, p_ops: count, p_limit: SYNC_DAILY_OPS_MAX });
+  // Deployed before its migration: no budget yet, rather than refusing every sync.
+  if (error?.code === UNKNOWN_FUNCTION) return true;
+  if (error) return "error";
+  return data;
+}
 
 // Before per-user programs, sessions named their day by a global code (A–D). Phones may still hold
 // such ops in their outbox: they get the day with that code in the user's oldest program, which is
@@ -136,13 +102,17 @@ export async function POST(request: Request) {
   const userId = await currentUser();
   if (!userId) return unauthorized();
 
-  const parsed = body.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return Response.json({ applied: 0, error: "body must be { ops: [...] }" }, { status: 400 });
+  const parsed = syncBody.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return Response.json({ applied: 0, error: `body must be { ops: [...] } with at most ${SYNC_BATCH_MAX} ops` }, { status: 400 });
 
   const supabase = db();
   const { ops } = parsed.data;
+  const budget = await withinDailyBudget(supabase, userId, ops.length);
+  if (budget === "error") return Response.json({ applied: 0, error: "Couldn't check the sync budget." }, { status: 500 });
+  // 429: the phone keeps the ops and retries later, like any temporary failure. Nothing is lost.
+  if (!budget) return Response.json({ applied: 0, error: "Daily sync limit reached. Try again tomorrow." }, { status: 429 });
   for (let i = 0; i < ops.length; i++) {
-    const valid = op.safeParse(await upgradeLegacy(supabase, userId, ops[i]));
+    const valid = syncOp.safeParse(await upgradeLegacy(supabase, userId, ops[i]));
     if (!valid.success) return Response.json({ applied: i, error: z.prettifyError(valid.error) }, { status: 422 });
     const error = await execute(supabase, userId, valid.data);
     if (error) {
