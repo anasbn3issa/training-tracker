@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training tracker directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Big+Shoulders+Display:wght@600;800;900&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --page:#e9e7e1; --ink:#1b1b19; --muted:#6c6a63; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--page); color:var(--ink); font:15px/1.5 system-ui, sans-serif; padding:28px 16px 60px; }
+  .bar { max-width:1180px; margin:0 auto 22px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; }
+  .bar h1 { font-size:20px; font-weight:700; margin-right:auto; }
+  .weeks { display:flex; gap:6px; }
+  .weeks button { min-width:44px; height:44px; border-radius:10px; border:1.5px solid #bdb9ae; background:transparent; font:600 15px system-ui; color:var(--ink); cursor:pointer; }
+  .weeks button[aria-pressed=true] { background:var(--ink); color:#f3f1ea; border-color:var(--ink); }
+  .grid { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:28px; justify-items:center; }
+  .col { width:360px; }
+  .col h2 { font-size:17px; font-weight:700; }
+  .col .meta { font-size:13px; color:var(--muted); margin:2px 0 12px; min-height:40px; }
+  .phone { width:360px; height:760px; border-radius:46px; border:9px solid #111; overflow:hidden; position:relative; display:flex; flex-direction:column; }
+  .sb { height:34px; flex:none; display:flex; justify-content:space-between; align-items:center; padding:0 26px; font:600 13px system-ui; }
+  .scr { flex:1; display:flex; flex-direction:column; padding:6px 18px 0; overflow:hidden; }
+  .tabs { flex:none; display:flex; height:74px; padding-bottom:16px; }
+  .tabs span { flex:1; display:flex; align-items:center; justify-content:center; }
+  svg text { font-family:inherit; }
+  @media (prefers-reduced-motion: no-preference) { .anim { transition: fill .25s, height .25s, y .25s, opacity .25s; } }
+
+  /* A — Plate loaded */
+  .A { background:#0d0d0b; color:#f1eee6; font-family:Archivo, sans-serif; }
+  .A .top { display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#9b978c; font-weight:500; }
+  .A .wk { display:flex; align-items:baseline; gap:10px; margin-top:4px; font-stretch:62%; text-transform:uppercase; line-height:.9; }
+  .A .wk b { font-size:76px; font-weight:900; letter-spacing:-.01em; }
+  .A .wk i { font-style:normal; font-size:30px; font-weight:800; color:#ff5a1f; }
+  .A .cue { font-size:21px; font-weight:700; line-height:1.2; margin-top:8px; }
+  .A .sub { font-size:14px; color:#9b978c; margin-top:4px; }
+  .A .flag { display:inline-flex; align-self:flex-start; margin-top:10px; padding:6px 10px; border:2px solid #f1eee6; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; font-stretch:80%; }
+  .A h3 { font-stretch:62%; text-transform:uppercase; font-weight:900; font-size:26px; margin-top:16px; display:flex; justify-content:space-between; align-items:baseline; border-bottom:3px solid #f1eee6; padding-bottom:4px; }
+  .A h3 small { font-size:14px; font-weight:600; color:#9b978c; font-stretch:100%; text-transform:none; }
+  .A .row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #2a2925; font-size:15px; }
+  .A .row .n { font-weight:700; font-size:17px; font-stretch:80%; }
+  .A .up { background:#ff5a1f; color:#160700; font-weight:800; font-size:12px; padding:2px 6px; margin-left:6px; font-stretch:80%; }
+  .A .cta { margin-top:auto; margin-bottom:10px; height:66px; background:#ff5a1f; color:#160700; display:flex; align-items:center; justify-content:center; font-stretch:62%; font-weight:900; font-size:30px; text-transform:uppercase; letter-spacing:.01em; }
+  .A .tabs { border-top:3px solid #f1eee6; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+  .A .tabs .on { color:#ff5a1f; }
+  .A .tabs span:not(.on) { color:#77736a; }
+
+  /* B — Stage profile */
+  .B { background:#0a0b09; color:#fff; font-family:Barlow, sans-serif; }
+  .B .top { display:flex; justify-content:space-between; font-size:14px; color:#9a9c96; font-weight:500; }
+  .B .hd { font-family:'Big Shoulders Display'; text-transform:uppercase; font-weight:900; line-height:.85; margin-top:6px; display:flex; align-items:flex-end; gap:10px; }
+  .B .hd b { font-size:84px; color:#ffe100; }
+  .B .hd span { font-size:30px; padding-bottom:6px; }
+  .B .hd span small { display:block; font-size:16px; color:#9a9c96; font-weight:600; }
+  .B .cue { margin-top:6px; display:flex; gap:10px; align-items:center; font-size:18px; font-weight:700; }
+  .B .cue em { font-style:normal; background:#ffe100; color:#141200; font-weight:800; font-size:13px; padding:3px 7px; text-transform:uppercase; letter-spacing:.04em; }
+  .B .sub { font-size:14px; color:#9a9c96; margin-top:2px; }
+  .B h3 { margin-top:14px; font-family:'Big Shoulders Display'; text-transform:uppercase; font-weight:800; font-size:24px; display:flex; justify-content:space-between; align-items:baseline; }
+  .B h3 small { font-family:Barlow; text-transform:none; font-size:14px; color:#9a9c96; font-weight:500; }
+  .B .row { display:grid; grid-template-columns:22px 1fr auto; gap:8px; align-items:center; padding:7px 0; border-top:1px solid #23241f; font-size:16px; font-weight:600; }
+  .B .row .ix { font-family:'Big Shoulders Display'; font-weight:800; color:#5d5f58; font-size:18px; }
+  .B .row .r { font-variant-numeric:tabular-nums; color:#c9cbc4; font-weight:600; }
+  .B .up { color:#ffe100; font-weight:800; font-size:13px; margin-left:6px; }
+  .B .cta { margin-top:auto; margin-bottom:10px; height:66px; border-radius:6px; background:#ffe100; color:#141200; display:flex; align-items:center; justify-content:space-between; padding:0 20px; font-family:'Big Shoulders Display'; font-weight:900; font-size:30px; text-transform:uppercase; }
+  .B .tabs { border-top:1px solid #23241f; font-size:13px; font-weight:700; }
+  .B .tabs .on { color:#ffe100; }
+  .B .tabs span:not(.on) { color:#6b6d66; }
+
+  /* C — Gym clock */
+  .C { background:#000; color:#e8e6e0; font-family:'JetBrains Mono', monospace; }
+  .C .top { display:flex; justify-content:space-between; font-size:12px; color:#8a8780; text-transform:uppercase; letter-spacing:.06em; }
+  .C .lbl { font-size:11px; color:#8a8780; text-transform:uppercase; letter-spacing:.12em; margin-top:14px; }
+  .C .cells { display:grid; grid-template-columns:repeat(6,1fr); gap:5px; margin-top:6px; }
+  .C .cell { height:74px; border-radius:4px; background:#160704; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#3c1409; }
+  .C .cell b { font-size:22px; font-weight:800; }
+  .C .cell small { font-size:10px; font-weight:600; letter-spacing:.06em; }
+  .C .cell.on { background:#ff3b1f; color:#140200; }
+  .C .cell.done { color:#7a2a17; }
+  .C .big { font-size:46px; font-weight:800; color:#ff3b1f; line-height:1; margin-top:14px; letter-spacing:-.03em; }
+  .C .cue { font-size:15px; margin-top:6px; font-weight:600; }
+  .C .sub { font-size:12px; color:#8a8780; margin-top:4px; }
+  .C .row { display:flex; justify-content:space-between; padding:6px 0; border-top:1px dashed #2b2a27; font-size:13px; }
+  .C .row .r { color:#ff3b1f; font-weight:600; }
+  .C .up { color:#000; background:#e8e6e0; font-size:11px; padding:1px 5px; margin-left:6px; font-weight:800; }
+  .C h3 { font-size:13px; text-transform:uppercase; letter-spacing:.1em; margin-top:16px; padding-bottom:6px; color:#e8e6e0; display:flex; justify-content:space-between; }
+  .C h3 small { color:#8a8780; font-size:12px; }
+  .C .cta { margin-top:auto; margin-bottom:10px; height:66px; border:2px solid #ff3b1f; color:#ff3b1f; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; text-transform:uppercase; letter-spacing:.14em; }
+  .C .tabs { border-top:1px solid #2b2a27; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; }
+  .C .tabs .on { color:#ff3b1f; }
+  .C .tabs span:not(.on) { color:#5d5b55; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Three directions · Today screen</h1>
+  <span style="font-size:14px;color:var(--muted)">Week of the block</span>
+  <div class="weeks" role="group" aria-label="Week of the block" id="weeks"></div>
+</div>
+<div class="grid">
+  <section class="col">
+    <h2>A · Plate loaded</h2>
+    <p class="meta">Gym hardware, stencil type. The block is a loaded barbell: plate size = how hard the week is.</p>
+    <div class="phone A" id="A"></div>
+  </section>
+  <section class="col">
+    <h2>B · Stage profile</h2>
+    <p class="meta">Sports broadcast. The block is a race stage: ramp, climb, summit at week 5, descent at the deload.</p>
+    <div class="phone B" id="B"></div>
+  </section>
+  <section class="col">
+    <h2>C · Gym clock</h2>
+    <p class="meta">The red LED timer on the gym wall. The block is a row of lit cells showing reps left.</p>
+    <div class="phone C" id="C"></div>
+  </section>
+</div>
+<script>
+const PHASE = {1:'Ramp',2:'Ramp',3:'Build',4:'Build',5:'Peak',6:'Deload'};
+const CUE = {1:'Stop 3–4 reps short',2:'Stop 3–4 reps short',3:'Leave 2–3 reps in the tank',4:'Leave 2–3 reps in the tank',5:'1–2 reps left on the last set',6:'4+ reps left. Same weights, half the sets'};
+const RIR = {1:'3–4',2:'3–4',3:'2–3',4:'2–3',5:'1–2',6:'4+'};
+const EX = [['Bench press',4,'6–8','82.5'],['Seated OHP',3,'8–10','40'],['Incline DB press',3,'8–12','28'],['Lateral raise',4,'12–20','10'],['Overhead triceps',3,'10–12','25'],['Rope pushdown',3,'12–15','30']];
+const sets = (b,w) => w<=2 ? b-1 : w===6 ? Math.ceil(b/2) : b;
+const nextNote = w => w===5 ? 'Next week: deload' : w===6 ? 'Block restarts at week 1 next week' : w===4 ? 'Peak week next, then deload' : null;
+const SB = '<div class="sb"><span>9:41</span><span>5G ▮</span></div>';
+const ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>';
+
+function plates(w){
+  const H=[48,48,72,72,100,30], x0=58, pw=28, gap=8;
+  let s='<svg viewBox="0 0 324 138" width="324" height="138" role="img" aria-label="Week '+w+' of 6"><rect x="0" y="56" width="324" height="8" fill="#5b5850"/><rect x="38" y="44" width="10" height="32" fill="#8a867b"/>';
+  H.forEach((h,i)=>{const k=i+1,x=x0+i*(pw+gap),y=60-h/2;
+    const fill=k===w?'#ff5a1f':k<w?'#6b675d':'none';
+    const stroke=k===w?'#ff5a1f':k<w?'#6b675d':'#f1eee6';
+    s+=`<rect class="anim" x="${x}" y="${y}" width="${pw}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="2" ${k===6&&k>w?'stroke-dasharray="4 3"':''}/>`;
+    s+=`<text x="${x+pw/2}" y="132" text-anchor="middle" font-size="13" font-weight="800" fill="${k===w?'#ff5a1f':'#9b978c'}">${k===6?'DL':'W'+k}</text>`;});
+  return s+'</svg>';
+}
+function A(w){
+  const note=nextNote(w), dl=w===6;
+  return SB+`<div class="scr">
+   <div class="top"><span>Sat 21 Nov · Push / Pull / Legs</span>${ICON}</div>
+   ${plates(w)}
+   <div class="wk"><b>${dl?'Deload':'Week '+w}</b><i>${dl?'Week 6':PHASE[w]}</i></div>
+   <p class="cue">${CUE[w]}</p>
+   ${note?`<span class="flag">${note}</span>`:''}
+   <h3>Push <small>Mon · Thu · 6 lifts</small></h3>
+   ${EX.slice(0,5).map((e,i)=>`<div class="row"><span><span class="n">${e[0]}</span>${i===0&&!dl?'<span class="up">+2.5 KG</span>':''}</span><span>${sets(e[1],w)} × ${e[2]}</span></div>`).join('')}
+   <div class="cta">Start push</div></div>
+   <div class="tabs"><span class="on">Today</span><span>History</span><span>Run</span></div>`;
+}
+function profile(w){
+  const E=[34,44,64,72,104,22], W=54, base=118;
+  let pts=[[0,base-E[0]]]; E.forEach((e,i)=>{pts.push([i*W+10,base-e]);pts.push([i*W+W-6,base-e]);});
+  const line=pts.map(p=>p.join(',')).join(' ');
+  const area=`0,${base} ${line} 324,${base-22} 324,${base}`;
+  const cx=(w-1)*W+W/2+2, cy=base-E[w-1];
+  let s=`<svg viewBox="0 0 324 150" width="324" height="150" role="img" aria-label="Week ${w} of 6"><defs><clipPath id="cl"><rect x="0" y="0" width="${w*W}" height="150"/></clipPath></defs>
+   <polygon points="${area}" fill="#1d1e1a"/><polygon class="anim" points="${area}" fill="#ffe100" clip-path="url(#cl)"/>
+   <polyline points="${line}" fill="none" stroke="#ffffff" stroke-width="2"/>`;
+  s+=`<line x1="${4*W+W/2}" y1="${base-104}" x2="${4*W+W/2}" y2="${base-128}" stroke="#fff" stroke-width="2"/><rect x="${4*W+W/2}" y="${base-130}" width="34" height="14" fill="#fff"/><text x="${4*W+W/2+17}" y="${base-119.5}" text-anchor="middle" font-size="10" font-weight="800" fill="#0a0b09">PEAK</text>`;
+  s+=`<circle cx="${cx}" cy="${cy-9}" r="7" fill="#0a0b09" stroke="#ffe100" stroke-width="3"/>`;
+  for(let i=0;i<6;i++) s+=`<text x="${i*W+W/2}" y="142" text-anchor="middle" font-size="12" font-weight="700" fill="${i+1===w?'#ffe100':'#6b6d66'}">${i===5?'DELOAD':'W'+(i+1)}</text>`;
+  return s+'</svg>';
+}
+function B(w){
+  const note=nextNote(w), dl=w===6;
+  return SB+`<div class="scr">
+   <div class="top"><span>Saturday 21 November</span>${ICON}</div>
+   <div class="hd"><b>${w}</b><span><small>Week ${w} of 6</small>${PHASE[w]}</span></div>
+   ${profile(w)}
+   <p class="cue"><em>${RIR[w]} left</em>${dl?'Easy week':PHASE[w]==='Peak'?'Hardest week':PHASE[w]+' week'}</p>
+   <p class="sub">${CUE[w]}${note?' · '+note:''}</p>
+   <h3>Today · Push <small>6 lifts</small></h3>
+   ${EX.slice(0,5).map((e,i)=>`<div class="row"><span class="ix">${i+1}</span><span>${e[0]}${i===0&&!dl?'<span class="up">↑ 82.5</span>':''}</span><span class="r">${sets(e[1],w)}×${e[2]}</span></div>`).join('')}
+   <div class="cta"><span>Start push</span><span>→</span></div></div>
+   <div class="tabs"><span class="on">Today</span><span>History</span><span>Run</span></div>`;
+}
+function C(w){
+  const note=nextNote(w), dl=w===6;
+  const cells=[1,2,3,4,5,6].map(k=>`<div class="cell ${k===w?'on':k<w?'done':''}"><b>${RIR[k]}</b><small>${k===6?'DL':'W'+k}</small></div>`).join('');
+  return SB+`<div class="scr">
+   <div class="top"><span>Sat 21.11 · PPL</span>${ICON}</div>
+   <p class="lbl">Block · reps left in the tank</p>
+   <div class="cells">${cells}</div>
+   <p class="big">${dl?'DELOAD':'WK 0'+w+'/06'}</p>
+   <p class="cue">${CUE[w]}</p>
+   ${note?`<p class="sub">&gt; ${note}</p>`:''}
+   <h3>Push <small>6 lifts</small></h3>
+   ${EX.slice(0,5).map((e,i)=>`<div class="row"><span>${e[0]}${i===0&&!dl?'<span class="up">+2.5</span>':''}</span><span class="r">${sets(e[1],w)}×${e[2]}</span></div>`).join('')}
+   <div class="cta">[ Start push ]</div></div>
+   <div class="tabs"><span class="on">Today</span><span>History</span><span>Run</span></div>`;
+}
+let week=5;
+function render(){
+  document.getElementById('A').innerHTML=A(week);
+  document.getElementById('B').innerHTML=B(week);
+  document.getElementById('C').innerHTML=C(week);
+  document.querySelectorAll('#weeks button').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.w===week)));
+}
+const wk=document.getElementById('weeks');
+[1,2,3,4,5,6].forEach(k=>{const b=document.createElement('button');b.textContent=k===6?'6 · DL':k;b.dataset.w=k;b.onclick=()=>{week=k;render();};wk.appendChild(b);});
+render();
+</script>
+</body>
+</html>

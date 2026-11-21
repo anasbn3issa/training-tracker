@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockWeek, findLastSets, shiftBlockStart, suggest, type LoggedSet, type Prescription } from "./progression";
+import { blockPhase, blockWeek, findLastSets, shiftBlockStart, suggest, type LoggedSet, type Prescription } from "./progression";
 
 // 4 x 8-10, like Incline DB press.
 const incline: Prescription = { base_sets: 4, rep_low: 8, rep_high: 10, increment_kg: 2.5 };
@@ -216,5 +216,11 @@ describe("shiftBlockStart", () => {
     const start = shiftBlockStart("2026-09-21", "2026-11-02", 3);
     expect(blockWeek(start, "2026-11-02")).toBe(3);
     expect(blockWeek(start, "2026-11-09")).toBe(4);
+  });
+});
+
+describe("blockPhase", () => {
+  it("maps the six weeks to ramp, build, peak and deload", () => {
+    expect([1, 2, 3, 4, 5, 6].map(blockPhase)).toEqual(["ramp", "ramp", "build", "build", "peak", "deload"]);
   });
 });

@@ -38,6 +38,15 @@ const roundKg = (kg: number) => Math.round(kg * 100) / 100;
 export const setsForWeek = (baseSets: number, week: number) => WEEKS[week].sets(baseSets);
 export const effortCue = (week: number) => WEEKS[week].cue;
 
+export type BlockPhase = "ramp" | "build" | "peak" | "deload";
+
+/** What a week of the block asks for: ramp (1–2), build (3–4), peak (5), deload (6). */
+export function blockPhase(week: number): BlockPhase {
+  if (week <= 2) return "ramp";
+  if (week <= 4) return "build";
+  return week === 5 ? "peak" : "deload";
+}
+
 export function suggest(rx: Prescription, week: number, lastSets: LoggedSet[]): Suggestion {
   const sets = setsForWeek(rx.base_sets, week);
 

@@ -1,27 +1,63 @@
 @import "tailwindcss";
 
-/* Dark only: used in a gym, high contrast. One accent (orange) for what the eye
-   must find; blue only to tell runs apart. */
+/* Plate loaded. Dark only: warm black, chalk, one safety-orange accent for
+   "now", "do this" and "it went up". Blue only tells runs apart. */
 @theme {
-  --color-bg: #0a0a0b;
-  --color-surface: #141416;
-  --color-surface-2: #1d1d21;
-  --color-line: rgb(255 255 255 / 0.07);
-  --color-fg: #f5f5f7;
-  --color-fg-2: #a1a1aa;
-  --color-fg-3: #6b6b74;
-  --color-accent: #ff8a3d;
-  --color-accent-press: #ff9f5e;
-  --color-accent-soft: rgb(255 138 61 / 0.14);
-  --color-accent-dim: rgb(255 138 61 / 0.45);
-  --color-on-accent: #140a03;
-  --color-run: #64b5ff;
-  --color-run-soft: rgb(100 181 255 / 0.14);
-  --color-danger: #ff5a5f;
+  --color-bg: #0d0d0b;
+  --color-surface: #181815;
+  --color-line: #2a2925;
+  --color-fg: #f1eee6;
+  --color-fg-2: #a9a59a;
+  --color-fg-3: #6f6b62;
+  --color-accent: #ff5a1f;
+  --color-accent-press: #ff7440;
+  --color-on-accent: #160700;
+  --color-run: #4c8dff;
+  --color-danger: #ff4d4d;
+
+  /* Legacy, removed in Task 11 once no screen uses them. */
+  --color-surface-2: #181815;
+  --color-accent-soft: rgb(255 90 31 / 0.14);
+  --color-accent-dim: rgb(255 90 31 / 0.45);
+  --color-run-soft: rgb(76 141 255 / 0.14);
+
+  --animate-flash: flash 300ms ease-out;
+  @keyframes flash {
+    from {
+      color: var(--color-accent);
+    }
+  }
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+}
+
+/* Archivo's width axis: 62 = stencil-narrow headings, 80 = labels and names. */
+@utility type-display {
+  font-variation-settings: "wdth" 62;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.92;
+}
+
+@utility type-label {
+  font-variation-settings: "wdth" 80;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@utility type-name {
+  font-variation-settings: "wdth" 80;
+  font-weight: 700;
+}
+
+@utility type-number {
+  font-variation-settings: "wdth" 80;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 :root {
