@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { dayPrescriptions } from "@/lib/program";
-import { findLastSets, suggest } from "@/lib/progression";
+import { blockPhase, findLastSets, suggest } from "@/lib/progression";
 import {
   REST_SECONDS,
   WEIGHT_FINE_STEP_KG,
@@ -21,8 +20,9 @@ import {
 import type { Exercise, LogState, Op, Program, Session } from "@/lib/types";
 import { useWakeLock } from "@/lib/use-wake-lock";
 import { uuid } from "@/lib/uuid";
+import { PHASE_LABEL } from "../block/phase-label";
 import { ChevronLeftIcon, ChevronRightIcon, UndoIcon } from "../icons";
-import { GhostButton, PrimaryButton, card } from "../ui";
+import { BackLink, GhostButton, PhaseTag, PrimaryButton, WeightUpTag, eyebrow } from "../ui";
 import { RestTimer } from "./rest-timer";
 import { Stepper, WeightField, stepperValue } from "./stepper";
 
@@ -135,17 +135,23 @@ export function ActiveSession({
   }
 
   const lastLine = formatSets(suggestion.lastSets, exercise.load_type);
+  const firstTime = suggestion.weightKg === null && exercise.load_type !== "bodyweight";
   const suggestedLoad = formatLoad(suggestion.weightKg, exercise.load_type);
-  const suggestedLine =
-    suggestion.weightKg === null && exercise.load_type !== "bodyweight"
-      ? "First time: enter a working weight"
-      : `${suggestedLoad}${suggestedLoad === "BW" ? "" : " kg"}${suggestion.advanced ? ` ↑ +${exercise.increment_kg}` : ""}`;
-
   const undoLoad = program.exercises.find((e) => e.id === undoable?.exercise_id)?.load_type ?? "machine";
+
+  const undoButton = undoable && (
+    <button onClick={undo} className="-mr-1 flex h-12 items-center gap-1.5 px-1 text-sm font-semibold text-current">
+      <UndoIcon className="size-5" />
+      Undo
+      <span className="tabular-nums">
+        {formatLoad(undoable.weight_kg, undoLoad)}×{undoable.reps}
+      </span>
+    </button>
+  );
 
   return (
     <main
-      className="flex flex-1 flex-col gap-3.5 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+      className="flex flex-1 flex-col gap-4 px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]"
       onTouchStart={(e) => (touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY })}
       onTouchEnd={(e) => {
         const start = touchStart.current;
@@ -156,74 +162,75 @@ export function ActiveSession({
         if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) go(index + (dx < 0 ? 1 : -1));
       }}
     >
-      <header className="flex items-center justify-between">
-        <Link href="/" className="-ml-1 flex h-12 items-center gap-0.5 pr-1 text-[15px] font-medium text-fg-2">
-          <ChevronLeftIcon className="size-5" />
-          Today
-        </Link>
+      <header className="flex items-center justify-between gap-1">
+        <BackLink href="/">Today</BackLink>
         <div className="flex items-center">
           <NavButton label="Previous exercise" disabled={index === 0} onClick={() => go(index - 1)}>
             <ChevronLeftIcon className="size-5" />
           </NavButton>
-          <div className="flex w-[7.5rem] flex-col items-center gap-1.5">
-            <p className="text-[13px] font-semibold text-fg-2 tabular-nums">
-              Exercise {index + 1} of {items.length}
-            </p>
-            <div className="flex gap-[5px]" aria-hidden>
-              {items.map((it, i) => (
-                <i
-                  key={it.exercise.id}
-                  className={`h-[7px] rounded-full ${
-                    i === index ? "w-[18px] bg-accent" : it.logged.length >= it.suggestion.sets ? "w-[7px] bg-accent-dim" : "w-[7px] bg-surface-2"
-                  }`}
-                />
-              ))}
-            </div>
+          <div className="flex gap-[3px]" aria-hidden>
+            {items.map((it, i) => (
+              <i
+                key={it.exercise.id}
+                className={`h-1.5 ${i === index ? "w-6 bg-accent" : it.logged.length >= it.suggestion.sets ? "w-3 bg-fg" : "w-3 bg-line"}`}
+              />
+            ))}
           </div>
           <NavButton label="Next exercise" disabled={isLast} onClick={() => go(index + 1)}>
             <ChevronRightIcon className="size-5" />
           </NavButton>
         </div>
-        <GhostButton onClick={undoable ? finish : cancel} className="px-2">
+        <button onClick={undoable ? finish : cancel} className="type-label -mr-2 h-12 px-2 text-sm text-fg">
           {undoable ? "Finish" : "Cancel"}
-        </GhostButton>
+        </button>
       </header>
 
       <div>
-        <h1 className="text-[30px] leading-tight font-extrabold tracking-tight">{exercise.name}</h1>
-        {rx.note && <p className="mt-1.5 inline-block rounded-lg bg-surface-2 px-2.5 py-1 text-sm font-medium text-fg-2">{rx.note}</p>}
+        <p className={eyebrow}>
+          Exercise {index + 1} of {items.length}
+        </p>
+        <h1 className="type-display mt-1 text-[52px]">{exercise.name}</h1>
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-base font-bold">
+          <PhaseTag>
+            Wk {session.block_week} · {PHASE_LABEL[blockPhase(session.block_week)]}
+          </PhaseTag>
+          {suggestion.effortCue}
+        </p>
+        {rx.note && <p className="type-label mt-2 inline-block border border-line px-2 py-1 text-xs text-fg-2">{rx.note}</p>}
       </div>
 
-      <dl className={`${card} px-4 py-1`}>
-        <InfoRow label="Target">
-          <span className="tabular-nums">
+      <div>
+        <dl className="border-t-[3px] border-fg">
+          <InfoRow label="Target">
             {suggestion.sets} × {rx.rep_low}–{rx.rep_high}
-          </span>
-          <span className="text-fg-2"> · {suggestion.effortCue}</span>
-        </InfoRow>
-        <InfoRow label="Last">
-          <span className="tabular-nums">{lastLine}</span>
-        </InfoRow>
-        <InfoRow label="Suggested">
-          <span className={`font-bold tabular-nums ${suggestion.advanced ? "text-accent" : suggestion.weightKg === null ? "font-medium text-fg-2" : ""}`}>
-            {suggestedLine}
-          </span>
-        </InfoRow>
-      </dl>
+          </InfoRow>
+          <InfoRow label="Last time">{lastLine}</InfoRow>
+          <InfoRow label="Today">
+            {firstTime ? (
+              <span className="font-sans text-[15px] font-medium text-fg-2">First time: enter a working weight</span>
+            ) : (
+              <span className="flex items-center justify-end gap-2">
+                {suggestion.advanced && <WeightUpTag kg={exercise.increment_kg} />}
+                <span className="text-xl">
+                  {suggestedLoad}
+                  {suggestedLoad === "BW" ? "" : " kg"}
+                </span>
+              </span>
+            )}
+          </InfoRow>
+        </dl>
+        {suggestion.advanced && <p className="mt-1.5 text-[13px] text-fg-2">Every set hit {rx.rep_high} last time, so the weight goes up.</p>}
+      </div>
 
-      <section aria-label="Sets" className="grid grid-cols-4 gap-2">
+      <section aria-label="Sets" className="grid grid-cols-4 gap-1.5">
         {Array.from({ length: Math.max(suggestion.sets, logged.length) }, (_, i) => {
           const done = logged[i];
           const current = i === logged.length;
           return (
             <span
               key={i}
-              className={`flex h-[52px] items-center justify-center rounded-[14px] text-[15px] tabular-nums ${
-                done
-                  ? "bg-surface-2 font-bold"
-                  : current
-                    ? "border-2 border-accent font-bold text-accent"
-                    : "border border-line bg-surface text-fg-3"
+              className={`type-name flex h-[52px] items-center justify-center text-[15px] tabular-nums ${
+                done ? "bg-fg text-bg" : current ? "border-[3px] border-accent text-accent" : "border border-fg-3 text-fg-3"
               }`}
             >
               {done ? `${formatLoad(done.weight_kg, exercise.load_type)}×${done.reps}` : `Set ${i + 1}`}
@@ -232,26 +239,16 @@ export function ActiveSession({
         })}
       </section>
 
-      {(restEndsAt !== null || undoable) && (
-        <div className="flex items-stretch gap-2.5">
-          {restEndsAt !== null ? <RestTimer endsAt={restEndsAt} totalSeconds={REST_SECONDS} /> : <div className="flex-1" />}
-          {undoable && (
-            <button
-              onClick={undo}
-              className={`${card} flex w-[104px] flex-col items-center justify-center gap-1 py-2 text-[13px] font-semibold text-fg-2 active:bg-surface-2`}
-            >
-              <UndoIcon className="size-5" />
-              Undo
-              <span className="font-medium text-fg-3 tabular-nums">
-                {formatLoad(undoable.weight_kg, undoLoad)}×{undoable.reps}
-              </span>
-            </button>
-          )}
-        </div>
+      {restEndsAt !== null ? (
+        <RestTimer endsAt={restEndsAt} totalSeconds={REST_SECONDS}>
+          {undoButton}
+        </RestTimer>
+      ) : (
+        undoButton && <div className="flex justify-end text-fg-2">{undoButton}</div>
       )}
 
       <div className="mt-auto flex flex-col gap-3">
-        <section className={`${card} flex flex-col gap-2.5 p-3`}>
+        <section aria-label="Next set" className="flex flex-col gap-2.5">
           {exercise.load_type !== "bodyweight" && (
             <Stepper
               label={isBodyweight(exercise.load_type) ? "Added kg" : "kg"}
@@ -270,7 +267,7 @@ export function ActiveSession({
           </Stepper>
         </section>
 
-        <PrimaryButton onClick={onPrimary} className="min-h-[72px] text-[22px]">
+        <PrimaryButton tall onClick={onPrimary}>
           {primaryLabel}
         </PrimaryButton>
         {prescribedDone && <GhostButton onClick={logSet}>Add set {logged.length + 1}</GhostButton>}
@@ -281,9 +278,9 @@ export function ActiveSession({
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-line py-2.5 [&+&]:border-t">
-      <dt className="shrink-0 text-xs font-semibold tracking-[0.06em] text-fg-3 uppercase">{label}</dt>
-      <dd className="text-right">{children}</dd>
+    <div className="flex min-h-11 items-center justify-between gap-4 border-b border-line py-2">
+      <dt className="shrink-0 text-[15px] text-fg-2">{label}</dt>
+      <dd className="type-name text-right text-[17px] tabular-nums">{children}</dd>
     </div>
   );
 }

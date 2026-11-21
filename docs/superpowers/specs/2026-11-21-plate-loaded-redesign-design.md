@@ -185,7 +185,7 @@ The other-day picker and the custom-workout form use rows and DayCode tiles, not
   - A PhaseTag and the effort cue.
   - Rows for Target, Last time and Today, with the reason line under Today.
 - **Set slots**: logged sets are chalk fills, the current set has a 3px accent outline, and later sets have a `fg-3` hairline.
-- **Rest timer**: a band with a 2px `fg` border, a "REST" label, the time at 54px, and a 6px accent bar along the bottom (its width transition is `motion-safe:` only). Undo sits inside the band. When rest is over, the band turns accent.
+- **Rest timer**: a band with a 2px `fg` border, a "REST" label, the time at 54px, and a 6px accent bar along the bottom (its width transition is `motion-safe:` only). Undo sits inside the band. When rest is over, the band turns chalk (`fg` fill, `bg` text), so it doesn't compete with the orange main button just below it.
 - **Steppers**: 72 × 64px outlined − and + buttons around a 46px value.
 - **Main button**: 72px.
 - **Custom session**: the same language.
