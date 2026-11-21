@@ -4,16 +4,17 @@ import { dayPrescriptions, orderDays } from "@/lib/program";
 import type { Exercise, Template } from "@/lib/types";
 import { DayBadge, card } from "../ui";
 
-/** One card per template: its days and their exercises, so the choice is informed. */
+/** One card per program to choose: its days and their exercises, so the choice is informed. */
 export function TemplatePicker({
   templates,
   exercises,
-  currentTemplateId,
+  usedBefore,
   onPick,
 }: {
   templates: Template[];
   exercises: Exercise[];
-  currentTemplateId: string | null;
+  /** Templates the user had before: their card shows the user's own version. */
+  usedBefore: string[];
   onPick: (template: Template) => void;
 }) {
   const name = (id: string) => exercises.find((e) => e.id === id)?.name ?? id;
@@ -25,7 +26,7 @@ export function TemplatePicker({
             <span className="flex items-baseline justify-between gap-3">
               <span className="text-xl font-bold">{t.name}</span>
               <span className="shrink-0 text-[13px] text-fg-3">
-                {t.id === currentTemplateId ? "Current · " : ""}
+                {usedBefore.includes(t.id) ? "Your version · " : ""}
                 {t.schedule.length}× a week
               </span>
             </span>

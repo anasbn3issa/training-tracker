@@ -3,7 +3,7 @@ import { applyOps } from "./ops";
 import { SyncStore, type Kv, type KvSchema } from "./sync";
 import type { LogState, Op, Program, Run, Session, SetLog } from "./types";
 
-const program: Program = { active: null, days: [], prescriptions: [], schedule: [], exercises: [] };
+const program: Program = { active: null, programs: [], days: [], prescriptions: [], schedule: [], exercises: [] };
 const START = "2026-09-21";
 const TODAY = "2026-10-26";
 
@@ -290,6 +290,67 @@ describe("SyncStore: pull and reconcile", () => {
     const { store, unauthorized } = setup(server);
     await store.start();
     expect(unauthorized()).toBe(1);
+  });
+});
+
+describe("SyncStore: after a program change", () => {
+  it("refresh reloads from the server and reports a failed reload", async () => {
+    const { store, server } = setup();
+    await store.start();
+    server.state = { ...server.state, blockStartDate: "2026-11-16" };
+    expect(await store.refresh()).toBe(true);
+    expect(store.getSnapshot().log.blockStartDate).toBe("2026-11-16");
+    server.mode = "down";
+    expect(await store.refresh()).toBe(false);
+  });
+
+  it("a program switch drops a week change still queued, so the server's block reset wins", async () => {
+    const { store, server } = setup();
+    await store.start();
+    server.syncDown = true;
+    store.apply([{ kind: "set_block_start", date: "2026-10-05" }, upsertSession]);
+    await store.idle();
+    server.state = { ...server.state, blockStartDate: "2026-11-16" }; // reset by choose_program
+    expect(await store.refresh({ dropBlockStart: true })).toBe(true);
+    expect(store.getSnapshot().log.blockStartDate).toBe("2026-11-16");
+    expect(store.getSnapshot().pending).toBe(1); // the session is still queued
+  });
+});
+
+describe("SyncStore: ops queued before per-user programs", () => {
+  // The shape a phone queued before the migration: a day code, no day_id.
+  const legacyRow = { id: "s9", day_code: "B", title: null, date: TODAY, block_week: 5, notes: null, completed_at: null };
+  const legacyCustom = { id: "s8", day_code: null, title: "Arms", date: "2026-10-20", block_week: 5, notes: "pump", completed_at: null };
+  const withDays: Program = {
+    ...program,
+    days: [
+      { id: "bro-b", program_id: "bro", code: "B", name: "Legs" }, // oldest program first
+      { id: "fb-b", program_id: "fb", code: "B", name: "Full body B" },
+    ],
+  };
+
+  it("get the day_id of that code in the oldest program, locally and when sent", async () => {
+    const kv = memoryKv();
+    Object.assign(kv.data, { outbox: [{ kind: "upsert", table: "sessions", row: legacyRow }] });
+    const server = fakeServer();
+    const base = server.fetch;
+    server.fetch = (url, init) => (url === "/api/program" ? Promise.resolve(Response.json(withDays)) : base(url, init));
+    server.syncDown = true;
+    const { store } = setup(server, kv);
+    await store.start();
+    expect(store.getSnapshot().log.sessions.find((s) => s.id === "s9")?.day_id).toBe("bro-b");
+  });
+
+  it("a stale custom workout keeps its notes instead of being deleted", async () => {
+    const kv = memoryKv();
+    Object.assign(kv.data, { outbox: [{ kind: "upsert", table: "sessions", row: legacyCustom }] });
+    const { store, server } = setup(fakeServer(), kv);
+    await store.start();
+    await store.idle();
+    const saved = server.state.sessions.find((s) => s.id === "s8");
+    expect(saved?.day_id).toBeNull();
+    expect(saved?.notes).toBe("pump");
+    expect(saved?.completed_at).not.toBeNull();
   });
 });
 

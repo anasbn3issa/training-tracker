@@ -1,7 +1,7 @@
 // Reading the user's program: which day is on which weekday, which exercises a day holds. Pure, no I/O.
 
 import { addDays, isoWeekday } from "./today";
-import type { DayExercise, Program, ProgramDay, ProgramExercise, ScheduleEntry, Week, WeekPlan } from "./types";
+import type { DayExercise, Program, ProgramDay, ProgramExercise, ScheduleEntry, Template, Week, WeekPlan } from "./types";
 
 export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -19,10 +19,15 @@ export function activeDays(program: Program): ProgramDay[] {
   );
 }
 
-/** The day planned on `weekday` (1 = Monday … 7 = Sunday), or null on a rest day. */
+/** The entry of `schedule` on `weekday` that names one of `days` (schedules of other programs are ignored). */
+const entryOn = (schedule: ScheduleEntry[], days: ProgramDay[], weekday: number) =>
+  schedule.find((s) => s.weekday === weekday && days.some((d) => d.id === s.day_id));
+
+/** The active program's day planned on `weekday` (1 = Monday … 7 = Sunday), or null on a rest day. */
 export function scheduledDay(program: Program, weekday: number): ProgramDay | null {
-  const entry = program.schedule.find((s) => s.weekday === weekday);
-  return program.days.find((d) => d.id === entry?.day_id) ?? null;
+  const days = program.days.filter((d) => d.program_id === program.active?.id);
+  const entry = entryOn(program.schedule, days, weekday);
+  return days.find((d) => d.id === entry?.day_id) ?? null;
 }
 
 /** Weekdays (1–7) on which the active program plans `dayId`. */
@@ -44,12 +49,28 @@ export function dayPrescriptions(program: Pick<Program, "prescriptions">, dayId:
   return program.prescriptions.filter((p) => p.day_id === dayId).sort((a, b) => a.position - b.position);
 }
 
-/** The week to edit, from a stored schedule. */
+/** The week of `days`' program to edit, from a stored schedule. */
 export function weekFromSchedule(schedule: ScheduleEntry[], days: ProgramDay[]): Week {
   return WEEKDAYS.map((_, i) => {
-    const entry = schedule.find((s) => s.weekday === i + 1);
+    const entry = entryOn(schedule, days, i + 1);
     return days.find((d) => d.id === entry?.day_id)?.code ?? null;
   });
+}
+
+/**
+ * What choosing `template` gives this user: their own earlier copy when they had one (it comes back
+ * with its swaps and week, like choose_program does), otherwise the template itself.
+ */
+export function yourVersion(program: Program, template: Template): Template {
+  const copy = program.programs.findLast((p) => p.template_id === template.id);
+  if (!copy) return template;
+  const days = program.days.filter((d) => d.program_id === copy.id);
+  return {
+    ...template,
+    days,
+    prescriptions: program.prescriptions.filter((p) => days.some((d) => d.id === p.day_id)),
+    schedule: program.schedule.filter((s) => days.some((d) => d.id === s.day_id)),
+  };
 }
 
 /** The edited week, as sent to the server. */

@@ -1,13 +1,14 @@
 import { z } from "zod";
 
-// Request bodies of the program routes. Days are named by code: it is stable when a template is copied.
+// Request body pieces shared by the API routes.
 
+export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+// Program routes name days by code: it is stable when a template is copied.
 export const weekPlan = z
   .array(z.object({ weekday: z.int().min(1).max(7), code: z.string().min(1).max(4) }))
   .max(7)
   .refine((plan) => new Set(plan.map((e) => e.weekday)).size === plan.length, "a weekday appears twice");
-
-export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 /** A day's exercises, in order. Sets/reps travel with the row: the app keeps them when swapping. */
 export const dayExercises = z

@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { activeDays, addExercise, editableDay, removeExercise, swapExercise, dayPrescriptions, formatWeekdays, mondayOf, planFromWeek, scheduledDay, weekFromSchedule, weekdaysOf } from "./program";
+import type { Template } from "./types";
+import {
+  yourVersion,
+  activeDays,
+  addExercise,
+  editableDay,
+  removeExercise,
+  swapExercise,
+  dayPrescriptions,
+  formatWeekdays,
+  mondayOf,
+  planFromWeek,
+  scheduledDay,
+  weekFromSchedule,
+  weekdaysOf,
+} from "./program";
 import type { Program, ProgramExercise } from "./types";
 
 const rx = (id: number, day_id: string, position: number, exercise_id: string): ProgramExercise => ({
@@ -16,6 +31,10 @@ const rx = (id: number, day_id: string, position: number, exercise_id: string): 
 // PPL with Push and Pull twice a week; "old" is a day of a program the user switched away from.
 const program: Program = {
   active: { id: "ppl", name: "Push / Pull / Legs", template_id: "t-ppl" },
+  programs: [
+    { id: "bro", name: "Bro split", template_id: "t-bro" },
+    { id: "ppl", name: "Push / Pull / Legs", template_id: "t-ppl" },
+  ],
   days: [
     { id: "pull", program_id: "ppl", code: "Pl", name: "Pull" },
     { id: "push", program_id: "ppl", code: "Pu", name: "Push" },
@@ -24,6 +43,7 @@ const program: Program = {
   ],
   prescriptions: [rx(1, "push", 2, "dips"), rx(2, "push", 1, "flat-db-press"), rx(3, "old", 1, "cable-fly")],
   schedule: [
+    { weekday: 7, day_id: "old" }, // the archived program's week: ignored for today and the week editor
     { weekday: 4, day_id: "push" },
     { weekday: 1, day_id: "push" },
     { weekday: 2, day_id: "pull" },
@@ -56,7 +76,7 @@ describe("program", () => {
 
 describe("week editing", () => {
   it("weekFromSchedule lays the schedule out Monday to Sunday by day code", () => {
-    expect(weekFromSchedule(program.schedule, program.days)).toEqual(["Pu", "Pl", null, "Pu", null, null, null]);
+    expect(weekFromSchedule(program.schedule, activeDays(program))).toEqual(["Pu", "Pl", null, "Pu", null, null, null]);
   });
 
   it("planFromWeek keeps the training days only", () => {
@@ -75,7 +95,10 @@ describe("week editing", () => {
 });
 
 describe("day editing", () => {
-  const day = editableDay([{ ...rx(1, "push", 1, "flat-db-press"), base_sets: 4, rep_low: 6, rep_high: 10 }, { ...rx(2, "push", 2, "dips"), note: "slow" }]);
+  const day = editableDay([
+    { ...rx(1, "push", 1, "flat-db-press"), base_sets: 4, rep_low: 6, rep_high: 10 },
+    { ...rx(2, "push", 2, "dips"), note: "slow" },
+  ]);
 
   it("a swap keeps the slot's sets and reps and drops its note", () => {
     expect(swapExercise(day, 1, "rope-pushdown")[1]).toEqual({ exercise_id: "rope-pushdown", base_sets: 3, rep_low: 8, rep_high: 12, note: null });
@@ -88,5 +111,27 @@ describe("day editing", () => {
 
   it("removing keeps the others in order", () => {
     expect(removeExercise(day, 0).map((r) => r.exercise_id)).toEqual(["dips"]);
+  });
+});
+
+describe("yourVersion", () => {
+  const template = (id: string): Template => ({
+    id,
+    name: "Bro split",
+    days: [{ id: "tpl-a", program_id: id, code: "A", name: "Chest + Triceps" }],
+    prescriptions: [rx(9, "tpl-a", 1, "incline-db-press")],
+    schedule: [{ weekday: 1, day_id: "tpl-a" }],
+  });
+
+  it("is the template itself when the user never had it", () => {
+    expect(yourVersion(program, template("t-upper-lower"))).toEqual(template("t-upper-lower"));
+  });
+
+  it("is the user's earlier copy when they had it: their exercises and their week", () => {
+    const mine = yourVersion(program, template("t-bro"));
+    expect(mine.id).toBe("t-bro"); // still chosen by template id
+    expect(mine.days.map((d) => d.id)).toEqual(["old"]);
+    expect(mine.prescriptions.map((p) => p.exercise_id)).toEqual(["cable-fly"]);
+    expect(weekFromSchedule(mine.schedule, mine.days)).toEqual([null, null, null, null, null, null, "A"]);
   });
 });

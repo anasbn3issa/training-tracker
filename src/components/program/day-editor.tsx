@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { addExercise, dayPrescriptions, editableDay, removeExercise, swapExercise } from "@/lib/program";
-import { failureMessage, saveDayExercises } from "@/lib/program-api";
+import { RELOAD_FAILED, failureMessage, saveDayExercises } from "@/lib/program-api";
 import type { Program, ProgramDay } from "@/lib/types";
 import { useData } from "../data-provider";
 import { XIcon } from "../icons";
@@ -31,7 +31,7 @@ export function DayEditor({ program, day, onClose }: { program: Program; day: Pr
     setError(null);
     try {
       await saveDayExercises(day.id, rows);
-      await refresh();
+      if (!(await refresh())) throw new Error(RELOAD_FAILED);
       onClose();
     } catch (e) {
       setError(failureMessage(e));

@@ -1,5 +1,5 @@
 import "server-only";
-import type { db } from "./supabase";
+import { isPermanentDbError, type db } from "./supabase";
 import type { ProgramDay, ProgramExercise, ScheduleEntry } from "./types";
 
 type Supabase = ReturnType<typeof db>;
@@ -54,9 +54,7 @@ export async function activeProgramId(supabase: Supabase, userId: string): Promi
 
 /** Response for a failed program write: 422 when the data can never be accepted, 500 otherwise. */
 export function writeFailed(error: { code?: string; message: string }): Response {
-  // Postgres classes 22 (data exception) and 23 (integrity violation) won't fix themselves.
-  const permanent = error.code?.startsWith("22") || error.code?.startsWith("23");
-  return Response.json({ error: error.message }, { status: permanent ? 422 : 500 });
+  return Response.json({ error: error.message }, { status: isPermanentDbError(error.code) ? 422 : 500 });
 }
 
 /** True when the day belongs to the user's active program (the only one they can edit). */

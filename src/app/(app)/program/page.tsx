@@ -10,7 +10,7 @@ import { DayEditor } from "@/components/program/day-editor";
 import { WeekEditor } from "@/components/program/week-editor";
 import { DayBadge, GhostButton, Loading, PrimaryButton, ScreenTitle, card, eyebrow } from "@/components/ui";
 import { activeDays, dayPrescriptions, formatWeekdays, planFromWeek, weekFromSchedule, weekdaysOf } from "@/lib/program";
-import { failureMessage, saveWeek } from "@/lib/program-api";
+import { RELOAD_FAILED, failureMessage, saveWeek } from "@/lib/program-api";
 import { findInProgress, localIsoDate } from "@/lib/today";
 import type { Week } from "@/lib/types";
 
@@ -66,7 +66,7 @@ export default function ProgramPage() {
     setError(null);
     try {
       await saveWeek(planFromWeek(week));
-      await refresh();
+      if (!(await refresh())) throw new Error(RELOAD_FAILED);
       setWeek(null);
     } catch (e) {
       setError(failureMessage(e));

@@ -15,11 +15,13 @@ export type Run = Omit<Tables<"runs">, "user_id">;
 export type Program = {
   /** null until the user has chosen a program (first login). */
   active: ProgramSummary | null;
-  /** Days of every program the user has had, archived ones included. */
+  /** Every program the user has had, oldest first, archived ones included. */
+  programs: ProgramSummary[];
+  /** Days of those programs, in the same order. */
   days: ProgramDay[];
   /** Prescriptions of those days. */
   prescriptions: ProgramExercise[];
-  /** The active program's week. */
+  /** The weeks of those programs (each entry names a day, so it belongs to that day's program). */
   schedule: ScheduleEntry[];
   /** The whole exercise catalog. */
   exercises: Exercise[];

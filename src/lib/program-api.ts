@@ -20,6 +20,9 @@ export const saveWeek = (week: WeekPlan) => send("/api/program/schedule", "PUT",
 
 export const saveDayExercises = (dayId: string, exercises: DayExercise[]) => send(`/api/program/days/${dayId}`, "PUT", { exercises });
 
+/** Thrown when a change was saved but the app couldn't load it back: saving again is harmless. */
+export const RELOAD_FAILED = "Saved, but the app couldn't reload your program. Try again.";
+
 /** Message for a failed change: offline is the usual cause on a phone. */
 export const failureMessage = (e: unknown) =>
   typeof navigator !== "undefined" && !navigator.onLine ? "You're offline. Program changes need a connection." : e instanceof Error ? e.message : "Something went wrong.";

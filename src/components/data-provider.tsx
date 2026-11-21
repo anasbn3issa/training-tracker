@@ -10,8 +10,8 @@ import type { Op } from "@/lib/types";
 type Data = Snapshot & {
   /** Applies writes to local state and IndexedDB immediately; syncs in the background. */
   apply: (ops: Op[]) => void;
-  /** Re-reads program and log from the server (after choosing or editing the program). */
-  refresh: () => Promise<void>;
+  /** Re-reads program and log from the server (after choosing or editing the program); false if that failed. */
+  refresh: SyncStore["refresh"];
 };
 
 const DataContext = createContext<Data | null>(null);

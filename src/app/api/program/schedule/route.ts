@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { currentUser, unauthorized } from "@/lib/current-user";
 import { activeProgramId, writeFailed } from "@/lib/program-db";
-import { weekPlan } from "@/lib/program-schemas";
+import { weekPlan } from "@/lib/schemas";
 import { db } from "@/lib/supabase";
 
 const body = z.object({ week: weekPlan });

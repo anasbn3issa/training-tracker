@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { currentUser, unauthorized } from "@/lib/current-user";
 import { ownsDay } from "@/lib/program-db";
-import { db } from "@/lib/supabase";
+import { isoDate } from "@/lib/schemas";
+import { db, isPermanentDbError } from "@/lib/supabase";
 import type { Op } from "@/lib/types";
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const timestamp = z.iso.datetime({ offset: true });
 
 // No user_id in any schema: unknown keys are stripped, the owner always comes from the cookie.
@@ -59,8 +59,9 @@ type OpError = { code?: string; message: string } | null;
 const FORBIDDEN: OpError = { code: "forbidden", message: "belongs to another user" };
 
 // Before per-user programs, sessions named their day by a global code (A–D). Phones may still hold
-// such ops in their outbox: they get the day with that code in the user's own program.
-// TODO: remove once every phone has synced past the programs migration.
+// such ops in their outbox: they get the day with that code in the user's oldest program, which is
+// the bro-split copy the migration made (a later program can reuse codes like A/B/C).
+// Mirrored on the phone by upgradeLegacyOps. TODO: remove both once every phone has synced.
 const legacySessionOp = z.object({
   kind: z.literal("upsert"),
   table: z.literal("sessions"),
@@ -74,12 +75,12 @@ async function upgradeLegacy(supabase: Supabase, userId: string, raw: unknown): 
   if (day_code === null) return { ...legacy.data, row: { ...row, day_id: null } };
   const { data, error } = await supabase
     .from("program_days")
-    .select("id, programs!program_days_program_id_fkey!inner(user_id, archived_at)")
+    .select("id, programs!program_days_program_id_fkey!inner(user_id, created_at)")
     .eq("code", day_code)
     .eq("programs.user_id", userId);
   if (error) throw new Error(error.message);
-  const day = data.find((d) => d.programs.archived_at === null) ?? data[0];
-  return { ...legacy.data, row: { ...row, day_id: day?.id ?? null } };
+  const [oldest] = data.sort((a, b) => a.programs.created_at.localeCompare(b.programs.created_at));
+  return { ...legacy.data, row: { ...row, day_id: oldest?.id ?? null } };
 }
 
 async function ownerOf(supabase: Supabase, table: "sessions" | "runs", id: string): Promise<string | null> {
@@ -145,8 +146,7 @@ export async function POST(request: Request) {
     if (!valid.success) return Response.json({ applied: i, error: z.prettifyError(valid.error) }, { status: 422 });
     const error = await execute(supabase, userId, valid.data);
     if (error) {
-      // Postgres classes 22 (data exception) and 23 (integrity violation) won't fix themselves.
-      const permanent = error.code === "forbidden" || error.code?.startsWith("22") || error.code?.startsWith("23");
+      const permanent = error.code === "forbidden" || isPermanentDbError(error.code);
       return Response.json({ applied: i, error: error.message }, { status: permanent ? 422 : 500 });
     }
   }

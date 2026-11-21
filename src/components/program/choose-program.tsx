@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { mondayOf, orderDays, planFromWeek, weekFromSchedule } from "@/lib/program";
-import { chooseProgram, failureMessage, fetchTemplates } from "@/lib/program-api";
+import { mondayOf, orderDays, planFromWeek, weekFromSchedule, yourVersion } from "@/lib/program";
+import { RELOAD_FAILED, chooseProgram, failureMessage, fetchTemplates } from "@/lib/program-api";
 import { localIsoDate } from "@/lib/today";
 import type { Template, Week } from "@/lib/types";
 import { useData } from "../data-provider";
@@ -47,7 +47,8 @@ export function ChooseProgram({ switching, onDone, onCancel }: { switching: bool
     setSaveError(null);
     try {
       await chooseProgram(picked.id, planFromWeek(week), mondayOf(localIsoDate(new Date())));
-      await refresh();
+      // The server restarted the block: a week change still queued from before must not undo that.
+      if (!(await refresh({ dropBlockStart: true }))) throw new Error(RELOAD_FAILED);
       onDone();
     } catch (e) {
       setSaveError(failureMessage(e));
@@ -77,7 +78,13 @@ export function ChooseProgram({ switching, onDone, onCancel }: { switching: bool
         ) : templates === null || program === null ? (
           <Loading />
         ) : (
-          <TemplatePicker templates={templates} exercises={program.exercises} currentTemplateId={program.active?.template_id ?? null} onPick={pick} />
+          <TemplatePicker
+            // Re-picking the current program would only reset the week and the block: edit those on the program page.
+            templates={templates.filter((t) => t.id !== program.active?.template_id).map((t) => yourVersion(program, t))}
+            exercises={program.exercises}
+            usedBefore={program.programs.map((p) => p.template_id).filter((id) => id !== null)}
+            onPick={pick}
+          />
         )}
         {onCancel && <GhostButton onClick={onCancel}>Cancel</GhostButton>}
       </>

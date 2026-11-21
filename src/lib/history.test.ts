@@ -4,6 +4,10 @@ import type { LogState, Program, Run, Session, SetLog } from "./types";
 
 const program: Program = {
   active: { id: "p1", name: "Bro split", template_id: "t1" },
+  programs: [
+    { id: "p0", name: "Upper / Lower", template_id: "t0" },
+    { id: "p1", name: "Bro split", template_id: "t1" },
+  ],
   days: [
     { id: "day-a", program_id: "p1", code: "A", name: "Chest + Triceps" },
     { id: "day-b", program_id: "p1", code: "B", name: "Legs" },
